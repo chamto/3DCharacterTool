@@ -10,27 +10,17 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
  void main(){vh=hl;vec3 P=p,N=n;if(SKN>.5&&bw.x>-.5){vec4 a0=rw(bw.x,0.),a1=rw(bw.x,1.),a2=rw(bw.x,2.);P=xm(a0,a1,a2,p,1.);N=xm(a0,a1,a2,n,0.);if(bw.z>0.){vec4 b0=rw(bw.y,0.),b1=rw(bw.y,1.),b2=rw(bw.y,2.);P+=bw.z*(xm(b0,b1,b2,pb,1.)-xm(a0,a1,a2,pb,1.));N=mix(N,xm(b0,b1,b2,n,0.),bw.z);}}// 자락: p=(1-w)pa+w·pb 이므로 A(p)+w(B(pb)-A(pb)) = (1-w)A(pa)+w·B(pb)
   vec3 q=P+normalize(N)*ow;vn=N;vrn=n;vid=id+ins*PIDN;vt=floor(c.r/2.);vc=vec3(c.r-2.*vt,c.g,c.b);vw=p;gl_Position=V*vec4(q,1.);}`;// vw: 기본자세 위치(무늬가 몸에 붙도록)
  const FS=`precision highp float;varying vec3 vn;varying vec3 vrn;varying vec3 vc;varying vec3 vw;varying float vt;varying float vid;varying vec4 vh;uniform sampler2D HT;uniform sampler2D ST;uniform sampler2D MC;uniform float SM;uniform vec3 SR;uniform vec3 SU;uniform vec3 PST;uniform vec3 PSH;uniform vec3 PHI;uniform float BRU;uniform sampler2D LT;uniform sampler2D FT;uniform vec3 L;uniform float flat_;uniform vec3 ink;uniform vec3 B;uniform sampler2D AT;uniform vec2 ATs;
- vec4 dt_(float r,float k){return texture2D(AT,vec2((k+.5)/8.,(r+.5)/ATs.y));}/* 장식표: 한 줄 = 장식이 붙는 부품 하나(통·몸통·구), 8칸 */
  void main(){if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5);gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,1.,1.);return;}if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
   vec3 base=vc;float txa=0.;if(vh.w>.5&&vh.w<1.5){float az=atan(vh.y,vh.x+1.);vec4 tx=texture2D(HT,vec2(.5+az/6.2832,(20.-vh.z)/34.));base=mix(base,tx.rgb,tx.a);txa=tx.a;}// 투구 상세 텍스처: 머리 국소 좌표로 방위각·높이를 구해 입힌다
   // 2D처럼 팔레트 그늘색·밝은색을 쓴다(판금은 모델 팔레트 값, 나머지는 바탕색에서 2D와 같은 비율로 만든다)
-  /* 갑옷줄·리벳·테두리·띠·버클·멜빵·능선: 폴리곤 대신 부품 국소 좌표(vh)와 장식표(AT)로 그린다. dcK=먹선, dcB=바탕색 덮기(명암 받음), dcR=가슴 능선 */
+  /* 갑옷줄·리벳·테두리·띠·버클·멜빵·가슴 능선: 폴리곤도 수식도 아닌, 미리 구워 둔 그림판(AT)에서 읽는다. 꼬리표 w = 10 + 종류(0 통,1 몸통,2 구) + 3·칸 번호. dcK=먹선, dcB=바탕색 덮기(명암 받음), dcR=가슴 능선 */
   vec4 dcB=vec4(0.);float dcK=0.,dcR=0.;
-  if(vh.w>9.5){float row=floor(vh.w+.5)-10.;vec4 T0=dt_(row,0.);
-   if(T0.x<.5){/* 통: vh=(둘레 cos, sin, 축 위치 0~1) */vec4 T1=dt_(row,1.),T2=dt_(row,2.),T3=dt_(row,3.);float L=T0.y,s=vh.z*L,hw=T0.z;
-    float m=max(max(max(step(abs(s-T1.x*L),hw),step(abs(s-T1.y*L),hw)),max(step(abs(s-T1.z*L),hw),step(abs(s-T1.w*L),hw))),step(abs(s-T2.x*L),hw))*step(.001,hw);
-    float rad=mix(T2.z,T2.w,clamp(vh.z,0.,1.));vec2 dv=vec2(s-T2.y*L,atan(vh.y,vh.x)*rad);
-    m=max(m,step(dot(dv,dv),T0.w*T0.w)*step(0.,vh.x)*step(.001,T0.w));dcK=m;
-    dcB=vec4(T3.yzw,step(abs(s-.02*L),T3.x)*step(.001,T3.x));}
-   else if(T0.x<1.5){/* 몸통: vh=(좌우, 높이 u, 중심선 앞뒤) */vec4 T1=dt_(row,1.),T2=dt_(row,2.),T3=dt_(row,3.),T4=dt_(row,4.),T5=dt_(row,5.),T6=dt_(row,6.),T7=dt_(row,7.);float u=vh.y,y=vh.x,f=vh.z,H0=T0.y;
-    float wl=max(max(step(abs(u-H0-3.),T0.w),step(abs(u-H0+1.),T0.w)),step(abs(u-H0+5.),T0.w))*step(.001,T0.w);
-    float nk=step(T1.x,u)*step(u,T1.y);
-    float bl=step(T1.z,u)*step(u,T1.w),bi=step(T1.z+.2,u)*step(u,T1.w-.2),be=step(T1.z-.2,u)*step(u,T1.w+.2)*(1.-bi)*(1.-step(abs(y),T6.x+.2)*step(0.,f));/* 허리띠 가장자리 먹선(버클 자리는 뺌) */
-    float bk=step(abs(y),T6.x)*step(T6.y,u)*step(u,T6.z)*step(0.,f),bki=step(abs(y),T6.x-.2)*step(T6.y+.2,u)*step(u,T6.z-.2),bke=step(abs(y),T6.x+.2)*step(T6.y-.2,u)*step(u,T6.z+.2)*step(0.,f)*(1.-bki);
-    float k=(u-T5.z)/(T5.w-T5.z),ys=mix(T5.x,T5.y,k),sm=max(step(abs(y-ys),T4.w),step(abs(y+ys),T4.w))*step(0.,k)*step(k,1.)*step(f,0.);
-    dcB=vec4(T2.rgb,nk);dcB=mix(dcB,vec4(T4.rgb,1.),sm);dcB=mix(dcB,vec4(T3.rgb,1.),bl);dcB=mix(dcB,vec4(T2.rgb,1.),bk);
-    dcK=max(max(wl,be),bke);dcR=step(T7.x,u)*step(u,T7.y)*step(0.,f)*(1.-smoothstep(.3,.45,abs(y)))*T7.z;}
-   else{/* 구: vh=리벳 방향을 x축으로 한 좌표 */vec3 n=normalize(vh.xyz);dcK=step(T0.y,n.x)*step(.001,T0.y);}}
+  if(vh.w>9.5){float cd=floor(vh.w+.5)-10.,kd=mod(cd,3.),cl=floor(cd/3.);vec2 og=vec2(mod(cl,8.),floor(cl/8.))*256.,ts=vec2(256.),uv=vec2(0.);float on=1.;
+   if(kd<.5){/* 통: vh=(둘레 cos, sin, 축 위치 0~1) */uv=vec2(atan(vh.y,vh.x)/6.2832+.5,vh.z);}
+   else if(kd<1.5){/* 몸통: vh=(좌우 -1~1, 높이 0~1, 앞뒤). 앞 그림은 첫 칸, 뒤 그림은 옆 칸 */ts.y=512.;uv=vec2(vh.x*.5+.5,vh.y);if(vh.z<0.)og.x+=256.;}
+   else{/* 구: vh=리벳 방향을 x축으로 한 좌표 → 앞 반구를 (y,z)로 눌러 편 그림 */vec3 n=normalize(vh.xyz);uv=n.yz*.5+.5;on=step(0.,n.x);}
+   vec2 px=og+clamp(uv,.5/ts,1.-.5/ts)*ts;vec4 A=texture2D(AT,px/ATs),Bp=texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs);/* 윗절반 = 바탕색(알파 곱한 RGB, A), 아랫절반 = (R 먹선, G 가슴 능선) */
+   dcB=vec4(A.rgb/max(A.a,.004),smoothstep(.3,.7,A.a)*on);dcK=smoothstep(.3,.7,Bp.r)*on;dcR=Bp.g*on;}
   base=mix(base,dcB.rgb,dcB.a);
   bool isSt=distance(vc,PST)<.03&&dcB.a<.5;vec3 rt=base/max(vc,vec3(.01));
   vec3 shC=isSt?PSH*rt:mix(base,vec3(.08,.09,.13),.4),hiC=isSt?PHI*rt:mix(base,vec3(1.,.99,.96),.55),dpC=mix(shC,vec3(.06,.06,.08),.35);
@@ -41,12 +31,12 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   else{float lv=texture2D(MC,vec2(nx,ny)*.5+.5+vec2(j*.25,0.)).r;shd=step(lv,.5);dp=step(lv,.17);hl=step(.85,lv);}// 3 매트캡: 그려 둔 공 그림에서 명암 단계를 읽는다
   vec3 col=mix(base,shC,shd);col=mix(col,dpC,dp);
   if(BRU>.5){col=mix(col,shC*.9,shd*S.b*.35);col=mix(col,col*1.07,(1.-shd)*S.r*.35);col=mix(col,hiC,hl*(.45+.55*S.r));}else col=mix(col,hiC,hl);// 붓터치: 그늘 안 굵은 붓 자국, 밝은 면 마른 붓 긁힘, 광택은 붓 획 모양
-  if(vh.w>1.5&&vh.w<2.5){float az=atan(vh.y,vh.x+1.);vec2 g=vec2(az*8.,vh.z/1.05);g.x+=mod(floor(g.y),2.)*.5;vec2 f=fract(g);float ar=abs(f.y-.78*(1.-4.*(f.x-.5)*(f.x-.5)));col=mix(col,col*.5,(1.-smoothstep(.05,.13,ar))*.85);}// 사슬 무늬(2D 사슬 두건과 같은 엇갈린 반달 고리)
+  if(vh.w>1.5&&vh.w<2.5){float az=atan(vh.y,vh.x+1.);col=mix(col,col*.5,texture2D(LT,vec2(az*8.,vh.z/2.1),-16.).b*.85);}// 사슬 무늬(2D 사슬 두건과 같은 엇갈린 반달 고리): 찰갑 그림 B칸에 구워 둔 무늬
   if(vt>.5&&vt<1.5){// 찰갑: 미리 그려 둔 찰갑 그림(찰갑선 1.5배 기준, 판 2칸×2줄 한 장)을 기본자세 위치에 옆면·앞면 투영으로 입힌다(R=먹선, G=판 안 높이)
    vec3 an=abs(normalize(vrn));float wy=an.x/(an.x+an.y+1e-4);vec4 T=mix(texture2D(LT,vec2(vw.x/5.4,vw.z/6.8)),texture2D(LT,vec2(vw.y/5.4,vw.z/6.8)),wy);
    float side=smoothstep(.9,.6,an.z)*(1.-txa);/* 투구 그림(드림 눈구멍 등)이 칠해진 곳엔 찰갑 무늬 없음 */col*=mix(1.,.9+.14*T.g,side);col=mix(col,vec3(.07,.065,.06),T.r*side);}
   if(vh.w>2.5&&vh.w<3.5){float az=atan(vh.y,vh.x+1.);vec4 f=texture2D(FT,vec2(.5+az/6.2832,(20.-vh.z)/34.));col=mix(col,f.rgb,f.a);}// 얼굴 그림: 눈썹·입·코 선·X 눈·안대와 끈·콧수염·수염선(폴리곤 대신 머리 국소 좌표 그림)
-  if(vh.w>3.5&&vh.w<4.5){float a=abs(atan(vh.y,vh.x))*vh.z;col=mix(col,vec3(.11,.1,.09),1.-smoothstep(.2,.32,a));}// 정강이·아래팔 능선: 통 둘레 각도로 가는 먹선
+  if(vh.w>3.5&&vh.w<4.5){col=mix(col,vec3(.11,.1,.09),texture2D(LT,vec2(atan(vh.y,vh.x)/6.2832+.5,clamp(vh.z/14.,.01,.99)),-16.).a);}// 정강이·아래팔 능선: 통 둘레 각도·반지름으로 찾아 읽는 먹선(찰갑 그림 A칸)
   col=mix(col,PSH*.95,dcR);// 가슴 가운데 능선(장식표 몸통 줄에서)
   col=mix(col,vec3(.114,.102,.09),dcK);// 갑옷줄 먹선·리벳: 명암 없이
   if(vt>2.5)col=vc;// 갑옷줄 먹선: 명암·광택 없이
@@ -91,13 +81,35 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
     const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)},L=1.5;
     for(let py=0;py<N;py++)for(let px=0;px<N;px++){let acc=0,g=0;for(let sy=0;sy<SS;sy++)for(let sx=0;sx<SS;sx++){const u=(px+(sx+.5)/SS)/N*2,v=(py+(sy+.5)/SS)/N*2,row=Math.floor(v),fy=v-row,fxr=u+row*.5,fx=fxr-Math.floor(fxr);
       const seam=sm(.085*L,.01*L,Math.min(fx,1-fx))*(fy>=.12?1:0),top=sm(.1*L,.02*L,Math.abs(fy-(.86+.1*(1-(fx*2-1)**2)))),lace=Math.hypot((fx-.5)*2.7,(fy-.32)*3.4)<.28*Math.sqrt(L)?1:0;acc+=Math.max(seam,top,lace);g+=fy}
-     const q=(py*N+px)*4;img[q]=Math.round(acc/SS/SS*255);img[q+1]=Math.round(g/SS/SS*255);img[q+2]=0;img[q+3]=255}
+     const q=(py*N+px)*4;img[q]=Math.round(acc/SS/SS*255);img[q+1]=Math.round(g/SS/SS*255);let ch=0,rg=0;for(let sy=0;sy<SS;sy++)for(let sx=0;sx<SS;sx++){const u=(px+(sx+.5)/SS)/N,v=(py+(sy+.5)/SS)/N,gy=v*2,rw_=Math.floor(gy),fy=gy-rw_,gx=u+(rw_%2)*.5,fx=gx-Math.floor(gx),ar=Math.abs(fy-.78*(1-4*(fx-.5)*(fx-.5)));ch+=1-sm(.05,.13,ar);const th=Math.abs((u-.5)*6.2832);rg+=1-sm(.2,.32,th*v*14)}/* 사슬 무늬(B, 두 줄 한 벌)와 능선 먹선(A, 가로=둘레각 -π~π, 세로=반지름 0~14) */
+     img[q+2]=Math.round(ch/SS/SS*255);img[q+3]=Math.round(rg/SS/SS*255)}
     gl.bindTexture(gl.TEXTURE_2D,ltex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,N,N,0,gl.RGBA,gl.UNSIGNED_BYTE,img);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT)})();
    eprog=gl.createProgram();gl.attachShader(eprog,sh(gl.VERTEX_SHADER,EVS));gl.attachShader(eprog,sh(gl.FRAGMENT_SHADER,EFS));gl.linkProgram(eprog);if(!gl.getProgramParameter(eprog,gl.LINK_STATUS))throw gl.getProgramInfoLog(eprog);qb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,qb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);ok=true}catch(e){console.warn(e);ok=false}return ok}
  const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
- // 장식표(AT): 부품마다 한 줄(32칸=RGBA 8texel). 줄 번호는 꼭짓점 꼬리표 w=10+줄. 종류(첫 칸): 0 통(겹판 줄·리벳·테두리), 1 몸통(허리 줄·목둘레·띠·버클·멜빵·가슴 능선), 2 구(리벳)
- const decRow=a=>{while(a.length<32)a.push(0);DEC.push(...a);return DEC.length/32-1};
- function decUp(tex){const n=Math.max(1,DEC.length/32),f=new Float32Array(n*32);f.set(DEC);tex=tex||gl.createTexture();gl.getExtension('OES_texture_float');gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,8,n,0,gl.RGBA,gl.FLOAT,f);for(const k of[gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.NEAREST);for(const k of[gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0);return{tex,n}}
+ // 장식표(AT): 부품마다 한 줄(32칸)이 굽기 재료. 종류(첫 칸): 0 통(겹판 줄·리벳·테두리), 1 몸통(허리 줄·목둘레·띠·버클·멜빵·가슴 능선), 2 구(리벳). 줄마다 그림판 칸이 배정되고, 꼭짓점 꼬리표는 w=10+종류+3·칸 번호
+ const decRow=a=>{while(a.length<32)a.push(0);DEC.push(...a);const pl=atPlan();return a[0]+3*pl.cells[pl.cells.length-1]};/* 반환값 = 종류 + 3·칸 번호(꼭짓점 꼬리표 w = 10 + 반환값) */
+ /* 장식 그림판: 가로 8칸(칸 = 256²). 통·구는 한 칸, 몸통은 2×2칸(앞 그림 256×512, 뒤 그림 256×512). 윗절반 = 바탕색(알파 곱한 RGB, A), 아랫절반 = (R 먹선, G 가슴 능선). 같은 줄 내용은 구운 그림을 다시 쓴다 */
+ const ATC=256,ATW=2048,ATP=1,AT_TILES=new Map();
+ function atPlan(){const used=new Set(),cells=[];let rows=1;for(let r=0;r<DEC.length/32;r++){const k=DEC[r*32]===1?2:1;let c=-1;for(let y=0;c<0;y++)for(let x=0;x+k<=8&&c<0;x++){let ok=true;for(let j=0;j<k&&ok;j++)for(let i=0;i<k;i++)if(used.has((y+j)*8+x+i)){ok=false;break}if(ok){c=y*8+x;for(let j=0;j<k;j++)for(let i=0;i<k;i++)used.add((y+j)*8+x+i);rows=Math.max(rows,y+k)}}cells.push(c)}return{cells,rows}}
+ const smS=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)},stp=(e,x)=>x>=e?1:0;
+ /* 타일 한 장 굽기: ev(u,v,o)가 칸 안 위치(0~1)마다 o=[R,G,B,바탕알파,먹선,능선]을 채운다. 한 칸을 2×2로 잘게 봐서 가장자리를 부드럽게 한다 */
+ function atFill(w,h,ev){const A=new Uint8Array(w*h*4),B=new Uint8Array(w*h*4),o=[0,0,0,0,0,0],SS=2,s2=1/(SS*SS);for(let j=0;j<h;j++)for(let i=0;i<w;i++){let r=0,g=0,b=0,a=0,k=0,rg=0;for(let sy=0;sy<SS;sy++)for(let sx=0;sx<SS;sx++){ev((i+(sx+.5)/SS)/w,(j+(sy+.5)/SS)/h,o);a+=o[3];r+=o[0]*o[3];g+=o[1]*o[3];b+=o[2]*o[3];k+=o[4];rg+=o[5]}const q=(j*w+i)*4;A[q]=Math.round(r*s2*255);A[q+1]=Math.round(g*s2*255);A[q+2]=Math.round(b*s2*255);A[q+3]=Math.round(a*s2*255);B[q]=Math.round(k*s2*255);B[q+1]=Math.round(rg*s2*255);B[q+3]=255}return{w,h,A,B}}
+ /* 통: 가로 = 둘레각 -π~π, 세로 = (축 위치 s + 1) ÷ (길이 + 2). 겹판 줄(최대 5)·리벳(앞쪽 원)·윗단 테두리 */
+ function bakeTube(r){const L=r[1],hw=r[2],rr=r[3],lm=[r[4],r[5],r[6],r[7],r[8]],ry=r[9],ra=r[10],rb=r[11],rw=r[12];return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{const th=(u-.5)*6.2832,s=v*(L+2*ATP)-ATP;let m=0;if(hw>=.001)for(const q of lm)if(hw>=Math.abs(s-q*L)){m=1;break}if(rr>=.001&&Math.abs(th)<=1.5708){const t=Math.min(1,Math.max(0,s/L)),rad=ra+(rb-ra)*t,dx=s-ry*L,dy=th*rad;if(dx*dx+dy*dy<=rr*rr)m=1}o[0]=r[13];o[1]=r[14];o[2]=r[15];o[3]=rw>=.001&&rw>=Math.abs(s-.02*L)?1:0;o[4]=m;o[5]=0})}]}
+ /* 몸통: 가로 = 좌우 -Yh~Yh, 세로 = 높이 H0-7 ~ uS+2. 앞 그림(f>0)과 뒤 그림(f<0)을 따로 굽는다 */
+ function bakeTorso(r){const H0=r[1],T0w=r[3],uA=H0-7,uB=r[2]+2,Yh=r[31],mk=front=>atFill(ATC,2*ATC,(a,b,o)=>{const y=(a*2-1)*Yh,u=uA+b*(uB-uA),ay=Math.abs(y),f=front?1:-1;
+   const wl=Math.max(stp(Math.abs(u-H0-3),T0w),stp(Math.abs(u-H0+1),T0w),stp(Math.abs(u-H0+5),T0w))*stp(.001,T0w),nk=stp(r[4],u)*stp(u,r[5]),bl=stp(r[6],u)*stp(u,r[7]),bi=stp(r[6]+.2,u)*stp(u,r[7]-.2),bkx=stp(ay,r[24])*stp(r[25],u)*stp(u,r[26])*stp(0,f);
+   const be=stp(r[6]-.2,u)*stp(u,r[7]+.2)*(1-bi)*(1-stp(ay,r[24]+.2)*stp(0,f)),bki=stp(ay,r[24]-.2)*stp(r[25]+.2,u)*stp(u,r[26]-.2),bke=stp(ay,r[24]+.2)*stp(r[25]-.2,u)*stp(u,r[26]+.2)*stp(0,f)*(1-bki);
+   const k=(u-r[22])/(r[23]-r[22]),ys=r[20]+(r[21]-r[20])*k,sm=Math.max(stp(Math.abs(y-ys),r[19]),stp(Math.abs(y+ys),r[19]))*stp(0,k)*stp(k,1)*stp(f,0);
+   let c=8,al=nk;if(sm){c=16;al=1}if(bl){c=12;al=1}if(bkx){c=8;al=1}o[0]=r[c];o[1]=r[c+1];o[2]=r[c+2];o[3]=al;o[4]=Math.max(wl,be,bke);o[5]=stp(r[28],u)*stp(u,r[29])*stp(0,f)*(1-smS(.3,.45,ay))*r[30]});return[{x:0,y:0,...mk(true)},{x:ATC,y:0,...mk(false)}]}
+ /* 구: 앞 반구를 (y,z)로 편 그림. 리벳 방향에서 각도 안쪽이 먹선 */
+ function bakeBall(r){const c=r[1];return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{const y=u*2-1,z=v*2-1,q=y*y+z*z;o[0]=o[1]=o[2]=o[3]=o[5]=0;o[4]=q<=1&&Math.sqrt(1-q)>=c&&c>=.001?1:0})}]}
+ function atBake(){const pl=atPlan(),n=DEC.length/32;if(!n)return{W:1,TH:2,data:new Uint8Array(8)};const W=ATW,H=pl.rows*ATC,TH=2*H,data=new Uint8Array(W*TH*4);
+  for(let r=0;r<n;r++){const row=DEC.slice(r*32,r*32+32),key=row.join(',');let ts=AT_TILES.get(key);if(!ts){ts=row[0]===1?bakeTorso(row):row[0]===0?bakeTube(row):bakeBall(row);if(AT_TILES.size>60)AT_TILES.clear();AT_TILES.set(key,ts)}
+   const ox=pl.cells[r]%8*ATC,oy=Math.floor(pl.cells[r]/8)*ATC;for(const t of ts)for(let y=0;y<t.h;y++){const a=((oy+t.y+y)*W+ox+t.x)*4,b=((H+oy+t.y+y)*W+ox+t.x)*4;data.set(t.A.subarray(y*t.w*4,(y+1)*t.w*4),a);data.set(t.B.subarray(y*t.w*4,(y+1)*t.w*4),b)}}
+  return{W,TH,data}}
+ /* 장식 그림판 올리기: 줄 내용이 그대로면 다시 굽거나 올리지 않는다 */
+ function decUp(o){const key=DEC.join(',');if(o&&o.key===key)return o;const b=atBake(),tex=o&&o.tex||gl.createTexture();gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,b.W,b.TH,0,gl.RGBA,gl.UNSIGNED_BYTE,b.data);for(const k of[gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR);for(const k of[gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0);return{tex,key,W:b.W,TH:b.TH}}
  let ATO=null;// 예전 방식(매 프레임 겉면 생성) 전용 장식표
  // ─ 메쉬 쌓기: 꼭짓점마다 위치·법선·색 ─
  let V=[],IDS=[],HLA=[],SKA=[],DEC=[],HLOC=null,PID=0,TAG=2;
@@ -121,7 +133,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 2D 판의 갑옷줄(겹판 줄 lames·리벳 rivets·윗단 테두리 rim): 폴리곤 없이 장식표 줄 + 통 국소 좌표(둘레 cos·sin, 축 위치 0~1)로 셰이더가 그린다 */
   {const lam=AW>0?o2.lames||[]:[],riv=AW>0?o2.rivets||[]:[];if(MODE==='mesh'&&!HLOC&&(lam.length||riv.length||o2.rim)){const dd=(v=>{const q=vsub(v,vmul(z,vdot(v,z)));return vlen(q)<.1?u:norm(q)})(o2.out||[1,0,0]),ex=norm(vcross(z,dd)),lm=[...lam,-9,-9,-9,-9,-9].slice(0,5),rc=o2.rim?hex(o2.rim):[0,0,0],
     row=decRow([0,L,lam.length?.22*AW:0,riv.length?(o2.rr||.55)*Math.sqrt(AW):0, lm[0],lm[1],lm[2],lm[3], lm[4],riv.length?riv[0]:-9,ra,rb, o2.rim?.45:-1,rc[0],rc[1],rc[2]]);
-   HLOC={fn:p_=>{const q=vsub(p_,A),sz=vdot(q,z),v=vsub(q,vmul(z,sz)),l=vlen(v)||1;return[vdot(v,dd)/l,vdot(v,ex)/l,sz/L,10+row]}}}}
+   HLOC={fn:p_=>{const q=vsub(p_,A),sz=vdot(q,z),v=vsub(q,vmul(z,sz)),l=vlen(v)||1;return[vdot(v,dd)/l,vdot(v,ex)/l,(sz+ATP)/(L+2*ATP),10+row]}}}}
   loft(R,col,{center:vlerp(A,B,.5),pid:o2.pid});
   HLOC=hl0;
   CB=cb0}
@@ -147,8 +159,8 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   // 몸통: 골반 아래(H0-7)부터 어깨(uS+2)까지 2D와 같은 단면을 촘촘히 이어 붙인다
   const BT_=bone(torsoF(K));CB=BT_;const MS=MODE==='mesh';// 몸통 뼈: 숙임(lean)만큼 위로 갈수록 앞으로 밀리는 기울임(전단) + 웅크림 높이
   const JT=m.armor==='jin'?1:2;TAG=JT;// 금나라 미늘 갑옷이면 미늘 무늬
-  if(MS){const TR=[];for(let k=0;k<=12;k++){const u=lerp(H0-7,uS+2,k/12);TR.push(ring(u))}const th=hex(tr),bc=hex(beltC),lc=hex(le),trow=decRow([1,H0,uS,m.armor!=='jin'&&AW>0?.22*AW:-1, uS+.5,uS+1.7,H0+4.6,H0+7.4, th[0],th[1],th[2],0, bc[0],bc[1],bc[2],0, lc[0],lc[1],lc[2],.75, 8,5,uS-1,H0+12, 2.5,H0+4,H0+8,1, H0+7,uS-2,1,0]);/* 허리 겹판 줄·목둘레 테두리·허리띠·버클·등 멜빵·가슴 능선: 폴리곤 없이 몸통 셰이더가 그림 */
-   HLOC={fn:q=>[q[1],q[2],q[0]-K.lv(q[2]).fo,10+trow]};loft(TR,st,{capB:true,capT:true});HLOC=null}TAG=2;const TPID=PID;// 몸통 부품 번호(몸통 위 줄들은 같은 번호 → 경계선 없음)
+  if(MS){const TR=[];for(let k=0;k<=12;k++){const u=lerp(H0-7,uS+2,k/12);TR.push(ring(u))}const th=hex(tr),bc=hex(beltC),lc=hex(le),trow=decRow([1,H0,uS,m.armor!=='jin'&&AW>0?.22*AW:-1, uS+.5,uS+1.7,H0+4.6,H0+7.4, th[0],th[1],th[2],0, bc[0],bc[1],bc[2],0, lc[0],lc[1],lc[2],.75, 8,5,uS-1,H0+12, 2.5,H0+4,H0+8,1, H0+7,uS-2,1,15.6*bT]);/* 허리 겹판 줄·목둘레 테두리·허리띠·버클·등 멜빵·가슴 능선: 폴리곤 없이 몸통 셰이더가 그림 */
+   HLOC={fn:q=>[q[1]/(15.6*bT),(q[2]-(H0-7))/(uS+2-(H0-7)),q[0]-K.lv(q[2]).fo,10+trow]};loft(TR,st,{capB:true,capT:true});HLOC=null}TAG=2;const TPID=PID;// 몸통 부품 번호(몸통 위 줄들은 같은 번호 → 경계선 없음)
   // 가슴 능선·허리 겹판 줄·목둘레 테두리·등 멜빵은 몸통 셰이더(장식표)가 그린다
   // 허리띠: 허리 단면을 조금 키운 띠
   // 허리띠·앞 버클도 몸통 셰이더(장식표)가 그린다
@@ -398,7 +410,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   gl.useProgram(prog);const cs=Math.cos(VIEW.yaw),sn=Math.sin(VIEW.yaw),U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('V'),false,view(X,Y,s,W,H));noSkin();gl.uniform3fv(U('L'),norm([sn*.9-cs*.7,cs*.9+sn*.7,1.1]));gl.uniform3fv(U('ink'),[.07,.065,.06]);gl.uniform3fv(U('B'),[sn*VIEW.uk,cs*VIEW.uk,VIEW.sq]);gl.uniform3fv(U('SR'),[cs,-sn,0]);gl.uniform3fv(U('SU'),[-sn*VIEW.sq,-cs*VIEW.sq,VIEW.uk]);gl.uniform1f(U('SM'),{toon:1,screen:2,matcap:3}[o.shade]||2);gl.uniform1f(U('BRU'),m.paint==='brush'?1:0);{const pp=m.pal||{},st=pp.steel||'#d9dee0';gl.uniform3fv(U('PST'),hex(st));gl.uniform3fv(U('PSH'),hex(pp.shade||hexMix(st,'#14161e',.4)));gl.uniform3fv(U('PHI'),hex(pp.hi||'#ffffff'))}
   const A=new Float32Array(V);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,A,gl.DYNAMIC_DRAW);const pL=gl.getAttribLocation(prog,'p'),nL=gl.getAttribLocation(prog,'n'),cL=gl.getAttribLocation(prog,'c');
   for(const[l,o] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,o)}const cnt=A.length/9;
-  const iL=gl.getAttribLocation(prog,'id');gl.bindBuffer(gl.ARRAY_BUFFER,ib);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(IDS),gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(iL);gl.vertexAttribPointer(iL,1,gl.FLOAT,false,4,0);const hL=gl.getAttribLocation(prog,'hl');gl.bindBuffer(gl.ARRAY_BUFFER,hb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(HLA),gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(hL);gl.vertexAttribPointer(hL,4,gl.FLOAT,false,16,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,htex);gl.uniform1i(U('HT'),1);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,mtex);gl.uniform1i(U('MC'),3);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(U('LT'),5);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,facetx||ltex);gl.uniform1i(U('FT'),6);{const a_=decUp(ATO&&ATO.tex);ATO=a_;gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,a_.tex);gl.uniform1i(U('AT'),7);gl.uniform2f(U('ATs'),8,a_.n)}gl.activeTexture(gl.TEXTURE0);gl.bindBuffer(gl.ARRAY_BUFFER,vb);
+  const iL=gl.getAttribLocation(prog,'id');gl.bindBuffer(gl.ARRAY_BUFFER,ib);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(IDS),gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(iL);gl.vertexAttribPointer(iL,1,gl.FLOAT,false,4,0);const hL=gl.getAttribLocation(prog,'hl');gl.bindBuffer(gl.ARRAY_BUFFER,hb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(HLA),gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(hL);gl.vertexAttribPointer(hL,4,gl.FLOAT,false,16,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,htex);gl.uniform1i(U('HT'),1);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,mtex);gl.uniform1i(U('MC'),3);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(U('LT'),5);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,facetx||ltex);gl.uniform1i(U('FT'),6);{const a_=decUp(ATO);ATO=a_;gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,a_.tex);gl.uniform1i(U('AT'),7);gl.uniform2f(U('ATs'),a_.W,a_.TH)}gl.activeTexture(gl.TEXTURE0);gl.bindBuffer(gl.ARRAY_BUFFER,vb);
   // 1) 부품 번호 그림(경계선 계산용)
   fboSize(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(U('ow'),0);gl.uniform1f(U('flat_'),3);gl.drawArrays(gl.TRIANGLES,0,cnt);gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);
   // 외곽선: 뒷면만 법선 방향으로 부풀려 먹색(뒤집은 껍질)
@@ -432,8 +444,8 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const vbo=MESH&&MESH.vbo||gl.createBuffer(),ibo=MESH&&MESH.ibo||gl.createBuffer(),hbo=MESH&&MESH.hbo||gl.createBuffer(),sbo=MESH&&MESH.sbo||gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER,vbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(V),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,ibo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(IDS),gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,hbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(HLA),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,sbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(SKA),gl.STATIC_DRAW);
-  const at_=decUp(MESH&&MESH.atex);
-  MESH={key,vbo,ibo,hbo,sbo,atex:at_.tex,atn:at_.n,cnt:V.length/9,nb:BI,pidn:PID+1,rinv:REST.map(F=>inv34(fm(F)))};V=[];IDS=[];HLA=[];SKA=[];return MESH}
+  const at_=decUp(MESH&&MESH.at);
+  MESH={key,vbo,ibo,hbo,sbo,at:at_,cnt:V.length/9,nb:BI,pidn:PID+1,rinv:REST.map(F=>inv34(fm(F)))};V=[];IDS=[];HLA=[];SKA=[];return MESH}
  // 뼈만 계산: 같은 부품 함수를 'bone' 모드로 돌려 지금 자세의 틀을 모은다(겉면 점은 만들지 않음)
  function bones(m,pose,down){MODE='bone';BI=0;CB=0;CUR=[];HLOC=null;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;build(m,K);MODE='mesh';return K}
  const CS=[];// 군중 배치 칸(가운데부터 바깥으로)
@@ -458,7 +470,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   gl.bindBuffer(gl.ARRAY_BUFFER,ME.hbo);gl.enableVertexAttribArray(hL);gl.vertexAttribPointer(hL,4,gl.FLOAT,false,16,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,ME.sbo);gl.enableVertexAttribArray(pbL);gl.vertexAttribPointer(pbL,3,gl.FLOAT,false,24,0);gl.enableVertexAttribArray(bwL);gl.vertexAttribPointer(bwL,3,gl.FLOAT,false,24,12);
   const IA=new Float32Array(NI);for(let i=0;i<NI;i++)IA[i]=i;gl.bindBuffer(gl.ARRAY_BUFFER,insb);gl.bufferData(gl.ARRAY_BUFFER,IA,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(inL);gl.vertexAttribPointer(inL,1,gl.FLOAT,false,4,0);XI.vertexAttribDivisorANGLE(inL,1);
-  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,htex);gl.uniform1i(U('HT'),1);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,mtex);gl.uniform1i(U('MC'),3);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(U('LT'),5);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,facetx||ltex);gl.uniform1i(U('FT'),6);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,ME.atex);gl.uniform1i(U('AT'),7);gl.uniform2f(U('ATs'),8,ME.atn);gl.activeTexture(gl.TEXTURE0);
+  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,htex);gl.uniform1i(U('HT'),1);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,mtex);gl.uniform1i(U('MC'),3);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(U('LT'),5);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,facetx||ltex);gl.uniform1i(U('FT'),6);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,ME.at.tex);gl.uniform1i(U('AT'),7);gl.uniform2f(U('ATs'),ME.at.W,ME.at.TH);gl.activeTexture(gl.TEXTURE0);
   const D=()=>XI.drawArraysInstancedANGLE(gl.TRIANGLES,0,ME.cnt,NI);// 같은 겉면을 인원수만큼 한 번에(인스턴싱)
   // 1) 부품 번호 그림 → 2) 외곽선 → 3) 본 그림: 모든 캐릭터를 한꺼번에
   fboSize(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(U('ow'),0);gl.uniform1f(U('flat_'),3);D();gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);
