@@ -113,6 +113,9 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
  let ATO=null;// 예전 방식(매 프레임 겉면 생성) 전용 장식표
  // ─ 메쉬 쌓기: 꼭짓점마다 위치·법선·색 ─
  let V=[],IDS=[],HLA=[],SKA=[],DEC=[],HLOC=null,PID=0,TAG=2;
+ /* 폴리곤(삼각형) 부위별 집계: pmk는 지금까지 쌓은 삼각형 중 직전 표시 뒤의 몫을 부위 이름으로 적고, pmx는 안쪽에서 따로 센 몫(얼굴·머리카락)을 적는다 */
+ let PM=[],PMX={},PML=0;const pmk=n=>{if(MODE!=='mesh')return;const c=V.length/27;PM.push([n,c-PML]);PML=c},pmx=(n,v0)=>{if(MODE==='mesh')PMX[n]=(PMX[n]||0)+(V.length-v0)/27};
+ function pmDone(){const x=Object.entries(PMX),sub=x.reduce((a,b)=>a+b[1],0),out=PM.map(([n,c])=>n==='목·머리·투구'?['목·투구·장식',c-sub]:[n,c]);for(const[n,c]of x)out.push([n,c]);return out.filter(e=>e[1]>0)}
  // 뼈: MODE 'mesh'(겉면 만들기, 기본자세 뼈를 REST에) / 'bone'(뼈만 계산해 CUR에). 뼈 = 틀(원점 + 축 3개). 부품마다 자기 틀을 뼈로 등록하므로 기본자세→지금자세 변환이 부품 모양과 정확히 맞는다
  let MODE='mesh',BI=0,CB=0,REST=[],CUR=[];const bone=F=>{(MODE==='mesh'?REST:CUR).push(F);return BI++};
  const push=(p,n,c,pb,bb,w)=>{V.push(p[0],p[1],p[2],n[0],n[1],n[2],c[0]+2*TAG,c[1],c[2]);IDS.push(PID);if(pb)SKA.push(pb[0],pb[1],pb[2],CB,bb,w);else SKA.push(p[0],p[1],p[2],CB,CB,0);if(HLOC&&HLOC.fn)HLA.push(...HLOC.fn(p));else if(HLOC){const d=vsub(p,HLOC.o);HLA.push(vdot(d,HLOC.f)/HLOC.s,vdot(d,HLOC.r)/HLOC.s,vdot(d,HLOC.u)/HLOC.s,HLOC.w||1)}else HLA.push(0,0,0,0)};
@@ -160,7 +163,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const BT_=bone(torsoF(K));CB=BT_;const MS=MODE==='mesh';// 몸통 뼈: 숙임(lean)만큼 위로 갈수록 앞으로 밀리는 기울임(전단) + 웅크림 높이
   const JT=m.armor==='jin'?1:2;TAG=JT;// 금나라 미늘 갑옷이면 미늘 무늬
   if(MS){const TR=[];for(let k=0;k<=12;k++){const u=lerp(H0-7,uS+2,k/12);TR.push(ring(u))}const th=hex(tr),bc=hex(beltC),lc=hex(le),trow=decRow([1,H0,uS,m.armor!=='jin'&&AW>0?.22*AW:-1, uS+.5,uS+1.7,H0+4.6,H0+7.4, th[0],th[1],th[2],0, bc[0],bc[1],bc[2],0, lc[0],lc[1],lc[2],.75, 8,5,uS-1,H0+12, 2.5,H0+4,H0+8,1, H0+7,uS-2,1,15.6*bT]);/* 허리 겹판 줄·목둘레 테두리·허리띠·버클·등 멜빵·가슴 능선: 폴리곤 없이 몸통 셰이더가 그림 */
-   HLOC={fn:q=>[q[1]/(15.6*bT),(q[2]-(H0-7))/(uS+2-(H0-7)),q[0]-K.lv(q[2]).fo,10+trow]};loft(TR,st,{capB:true,capT:true});HLOC=null}TAG=2;const TPID=PID;// 몸통 부품 번호(몸통 위 줄들은 같은 번호 → 경계선 없음)
+   HLOC={fn:q=>[q[1]/(15.6*bT),(q[2]-(H0-7))/(uS+2-(H0-7)),q[0]-K.lv(q[2]).fo,10+trow]};loft(TR,st,{capB:true,capT:true});HLOC=null}TAG=2;pmk('몸통');const TPID=PID;// 몸통 부품 번호(몸통 위 줄들은 같은 번호 → 경계선 없음)
   // 가슴 능선·허리 겹판 줄·목둘레 테두리·등 멜빵은 몸통 셰이더(장식표)가 그린다
   // 허리띠: 허리 단면을 조금 키운 띠
   // 허리띠·앞 버클도 몸통 셰이더(장식표)가 그린다
@@ -179,18 +182,18 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(m.armor==='jin'){TAG=1;const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,hemU=Math.max(H0-36*bL,kc[2]-9),sY=Math.max(16.5*bT,spread+7*LM),BHm=bone([[kc[0]*.5,0,hemU],[1,0,0],[0,sY,0],[0,0,1]]);
    if(MS){const W=ring(H0+6,1.2),HM=[],SK=[W];for(let k=0;k<20;k++){const q=k/20*6.2832;HM.push([kc[0]*.5+Math.cos(q)*13.5*bT,Math.sin(q)*sY,hemU])}for(let j=1;j<=4;j++)SK.push(W.map((w,k)=>vlerp(w,HM[k],j/4)));loft(SK,st,{center:T(H0-8),two:{pa:(j,i)=>W[i],pb:(j,i)=>HM[i],bb:BHm,t:j=>j/4}})}TAG=2}
   // 다리: 2D와 같은 반지름의 통
-  for(const g of K.legs){const out=[.6,g.side*.8,0];tube(g.Hp,g.K,8*LM,6.4*LM,st,.5,{lames:[.12,.26],rivets:[.5],out});if(!m.coat&&m.armor!=='jin')tube(vadd(g.Hp,[2,g.side,7]),vlerp(g.Hp,g.K,.5),9.8*LM,8.8*LM,st,.5,{lames:[.28,.52,.76],rivets:[.15],out});
+  pmk('겉옷·치마·칼집·자락');for(const g of K.legs){const out=[.6,g.side*.8,0];tube(g.Hp,g.K,8*LM,6.4*LM,st,.5,{lames:[.12,.26],rivets:[.5],out});if(!m.coat&&m.armor!=='jin')tube(vadd(g.Hp,[2,g.side,7]),vlerp(g.Hp,g.K,.5),9.8*LM,8.8*LM,st,.5,{lames:[.28,.52,.76],rivets:[.15],out});
    tube(vadd(g.K,[0,0,6]),vadd(g.K,[1,0,3.5]),6.6*LM,6.4*LM,st,.2,{rivets:[.52],out:[1,0,0],rr:.6});/* 무릎 리벳: 장식표 */tube(vadd(g.K,[.5,0,-4]),vadd(g.K,[0,0,-7]),6*LM,5.8*LM,st,.2);
    tube(g.K,g.A,5.8*LM,4.1*LM,st,.5,{ridge:true});tube(vadd(g.A,[0,0,-1]),vadd(vadd(g.F,vmul(g.toe,14*Math.sqrt(LM))),[0,0,1.6]),4.6*LM,2.8*LM,st,.8,{lames:[.22,.36,.5,.64,.78]})}
   // 팔
-  for(const g of K.arms){const{side,S,E,Hn}=g,ud=norm(vsub(E,S)),fw=norm(vsub(Hn,E)),wr=vsub(Hn,vmul(fw,3.5));const JA=m.armor==='jin',out=[.5,side*.85,0];TAG=JT;tube(S,E,5.6*LM,5*LM,st,.5,JA?{}:{lames:[.55],rivets:[.3],out});TAG=2;tube(E,wr,5*LM,4.3*LM,st,.5,{ridge:[.6,0,.6]});
+  pmk('다리');for(const g of K.arms){const{side,S,E,Hn}=g,ud=norm(vsub(E,S)),fw=norm(vsub(Hn,E)),wr=vsub(Hn,vmul(fw,3.5));const JA=m.armor==='jin',out=[.5,side*.85,0];TAG=JT;tube(S,E,5.6*LM,5*LM,st,.5,JA?{}:{lames:[.55],rivets:[.3],out});TAG=2;tube(E,wr,5*LM,4.3*LM,st,.5,{ridge:[.6,0,.6]});
    {const R_=5.6*LM,on_=norm(out),e1=norm(vcross(on_,[0,0,1])),e2=vcross(on_,e1),h0_=HLOC;/* 팔꿈치 리벳: 구 위 점(장식표 종류 2) */if(MS&&AW>0){const row=decRow([2,Math.cos(Math.min(1.4,.55*Math.sqrt(AW)/R_)),0,0]);HLOC={fn:p_=>{const q=vsub(p_,E);return[vdot(q,on_),vdot(q,e1),vdot(q,e2),10+row]}}}ellip(v=>vadd(E,v),R_,R_,R_,0,0,st);HLOC=h0_}ellip(v=>vadd(vadd(E,vmul([0,side,0],4.8*LM)),vadd(v,[-3,0,0])),4.4*LM,2.2*LM,4.4*LM,0,0,st);
    tube(vsub(wr,vmul(fw,1.5)),vadd(wr,vmul(fw,3.5)),4.8*LM,6.8*LM,gl_,.15,{lames:[.6]});ellip(v=>vadd(Hn,v),4.8*LM,4.8*LM,4.8*LM,0,0,gl_);
    const top=vadd(S,[0,side*2,3]),lo=vadd(S,vmul(ud,12*psz));TAG=JT;tube(top,lo,8.6*psz,7.6*psz,st,.95,JA?{rim:tr}:{lames:[.34,.52,.7,.86],rivets:[.15],out,rim:tr});TAG=2;
    if(!JA&&m.paul==='haute')boxF(vadd(S,[.5,-side*3.5,4+4.25*psz]),[5.5,0,0],[0,.6,0],[0,0,4.25*psz],st)}// 오트 피스: 어깨 안쪽에 세운 관판(목 옆 방패판)// 어깨판: 겹판 줄·리벳·윗단 테두리
   // 목·머리
-  tube(T(uS),vadd(K.head,[0,0,-8*hs]),5,4.4,st);
-  helm(m,K,st,sk,tr,p);HLOC=null}
+  pmk('팔·어깨·장갑');tube(T(uS),vadd(K.head,[0,0,-8*hs]),5,4.4,st);
+  helm(m,K,st,sk,tr,p);HLOC=null;pmk('목·머리·투구')}
  function helm(m,K,st,sk,tr,p){const{HL,hs}=K,kit=m.helm==='kit'&&m.hkit?m.hkit:null,HW=m.hwear||'helm',F=kit?kit.form:m.helm,up=kit?kit.visor==='up':(m.helm==='open'||m.helm==='peakup'),HC=kit&&kit.colors&&kit.colors.main?kit.colors.main:st,TC=kit&&kit.colors&&kit.colors.trim?kit.colors.trim:tr,INKC='#1d1a17';
   const HB=bone([K.head,vmul(K.HR([1,0,0]),hs),vmul(K.HR([0,1,0]),hs),vmul(K.HR([0,0,1]),hs)]);CB=HB;let FDZ=0;// 머리 뼈(투구·머리카락·두건이 따라감). FDZ: 두건 위에 얼굴을 얹을 때 앞으로 띄우는 양
   // 얼굴 창: 앞쪽(x>2)에서 가운데 (u=c) 높이·폭 타원 안의 면은 만들지 않는다 → 안의 머리·얼굴이 보인다
@@ -205,18 +208,18 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const PATCH=!!m.patch||m.fEye==='patch'||m.fEye==='round';// 외눈 안대(따로 고르는 옵션; 예전에 눈 모양으로 고른 안대도 안대로)
   // 얼굴: 머리통·귀·눈동자·코 볼록면·덥수룩한 수염만 입체로 만들고, 눈썹·입·코 선·X 눈·가는 눈·안대와 끈·콧수염·턱수염·수염선은 얼굴 그림(머리 국소 좌표 텍스처)에 그린다
   const HF={o:K.head,s:hs,f:K.HR([1,0,0]),r:K.HR([0,1,0]),u:K.HR([0,0,1]),w:3};
-  const face=(full=true,noEars=false)=>{const t0=TAG,h0=HLOC;HLOC=HF;TAG=0;skull();SPID=PID;const fp={pid:SPID};
+  const face=(full=true,noEars=false)=>{const pv_=V.length,t0=TAG,h0=HLOC;HLOC=HF;TAG=0;skull();SPID=PID;const fp={pid:SPID};
    for(const sd of[-1,1]){if(noEars)break;ellip(v=>HL(vadd([-1,sd*8.75,-1.6],v)),1.85,.5,2.8,0,0,INKC,undefined,undefined,fp);ellip(v=>HL(vadd([-1,sd*9.05,-1.6],v)),1.5,.65,2.4,0,0,sk,undefined,undefined,fp)}/* 귀: 머리카락 밖으로(2D도 머리카락 위에 귀) */
    /* 눈동자는 얼굴 그림(텍스처)에 그린다 */
    if(full){const NZ={small:[1.2,.9,1.6],hook:[1.8,.9,2],broad:[1.2,1.6,1.5]}[nz]||[1.2,.9,1.6];ellip(v=>vadd(FPb(0,-3.6,-.4),v),NZ[0],NZ[1],NZ[2],0,0,sk,undefined,undefined,fp);
     if(bd==='full')ellip(HL,9.6,8.8,11.2,-.4,-1.6,hairC,-Math.PI/2,-.35,{capT:true,pid:SPID})}
-   if(MODE==='mesh')faceTex({ey,ball:['dot','fierce','xround','patch','round'].includes(ey),nz,mo,bd,PATCH,hairC,brow,hair:m.hair||'short',full});TAG=t0;HLOC=h0};
+   if(MODE==='mesh')faceTex({ey,ball:['dot','fierce','xround','patch','round'].includes(ey),nz,mo,bd,PATCH,hairC,brow,hair:m.hair||'short',full});TAG=t0;HLOC=h0;pmx('얼굴(머리통·귀·코)',pv_)};
   // 머리 모양(2D hairSet과 같은 선): 앞은 이마 위, 옆은 귀 높이, 뒤는 목덜미까지. 긴 머리=등 뒤로 늘어진 자락, 묶은 머리=뒤통수 위 상투, 민머리=없음
-  const hairCap=()=>{const hs_=m.hair||'short';if(hs_==='bald')return;const h0=HLOC;HLOC=HF;
+  const hairCap=()=>{const hs_=m.hair||'short';if(hs_==='bald')return;const pv_=V.length,h0=HLOC;HLOC=HF;
    if(MODE==='mesh'){const Rf=10.3,Rr=9.3,Ru=12,cf=-.9,cu=-1,n=24,zt=x=>x>.45?.42:x>.25?lerp(-.05,.42,(x-.25)/.2):x>-.1?-.05:x>-.3?lerp(-.5,-.05,(x+.3)/.2):-.5,R=[];
     for(let j=0;j<=7;j++){const a=[];for(let i=0;i<n;i++){const t=i/n*6.2832,la=lerp(Math.asin(zt(Math.cos(t))),Math.PI/2,j/7);a.push(HL([cf+Rf*Math.cos(la)*Math.cos(t),Rr*Math.cos(la)*Math.sin(t),cu+Ru*Math.sin(la)]))}R.push(a)}loft(R,hairC,{center:HL([cf,0,cu])});
     if(hs_==='long'){const top=[],bot=[];for(let k=0;k<12;k++){const t=Math.PI*.55+k/11*Math.PI*.9;top.push(HL([-.6+Math.cos(t)*10.4,Math.sin(t)*9.6,.8]));bot.push(HL([-.6+Math.cos(t)*11.4-1,Math.sin(t)*10.8,-18.2]))}const mid=top.map((q,k)=>vlerp(q,bot[k],.5));loft([top,mid,bot],hairC,{open:true,center:HL([-1,0,-6])})}}
-   if(hs_==='knot')ellip(v=>HL(vadd(v,[-4,0,11.8])),3.4,3.4,3.4,0,0,hairC);HLOC=h0};
+   if(hs_==='knot')ellip(v=>HL(vadd(v,[-4,0,11.8])),3.4,3.4,3.4,0,0,hairC);HLOC=h0;pmx('머리카락',pv_)};
   // 사슬 두건(coif)·천 두건(hood): 머리를 감싸고 어깨까지 퍼지는 자락, 앞은 얼굴이 드러나는 타원 구멍(살색 면 + 얼굴)
   const hood=chain=>{const col=chain?st:(p.cloth||'#6d675e'),G=chain?1.6:2.2,Rf=9.2+G,Rr=8.2+G,Ru=10.8+G,cf=-1,cu=-.8;
    face(true,true);// 안의 머리·얼굴(귀는 두건 속)
@@ -288,7 +291,15 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
      const LR=US.slice().reverse().map(u=>{const[a,b]=rad(u);return Array.from({length:n},(_,i)=>{const t=i/n*6.2832;return[Math.cos(t)*a-1,Math.sin(t)*b,u]})});
      const eyeWin=(...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length);return c[0]>2&&Math.abs(c[1])<6.6&&c[2]<3.15&&c[2]>-.6-1*(1-(c[1]/6.6)**2)};
      TAG=1;loft(LR.map(r=>r.map(HL)),HC,{center:HL([-1,0,-5]),skip:(j,i,i2)=>eyeWin(LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});TAG=2}}
-   else{face();if(F==='jin')loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true})}
+   else{face();if(F==='jin')loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});
+    /* 드림 올림(2D jinDraw와 같게): 접은 챙 아래 천 가장자리, 귀 옆 속드림 자락(금나라 투구2는 뒷자락까지), 자락 밑단 천, 턱 밑에서 묶는 붉은 끈 */
+    {const h0_=HLOC;HLOC=null;const FOLD=F==='jin',DB=-14.5,FB=-11.5,gi=FOLD?1:0,top=FOLD?BU+1.4:BU+.5,cloth=p.cloth||tr,red=p.flap&&p.flap!==st?p.flap:'#b3261a',
+     dF=u=>u>=-6?lerp(10.4,11,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(11,14.2,clamp((-6-u)/(-6-DB),0,1)),dS=u=>u>=-6?lerp(9.8,10.6,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(10.6,13.8,clamp((-6-u)/(-6-DB),0,1));
+     if(FOLD){TAG=0;loft([neckRing(12.16,11.66,-1,BU+1.6).map(HL),neckRing(12.16,11.66,-1,BU+2.8).map(HL)],cloth,{capB:true,capT:true});TAG=2}/* 챙 밑단 천 */
+     const secs=FOLD?[[.95,1.85,FB],[4.43,5.33,FB]]:[[.95,1.75,FB],[1.75,Math.PI,DB],[Math.PI,4.53,DB],[4.53,5.33,FB]],arc=(u,t0,t1,g)=>Array.from({length:9},(_,q)=>{const t=lerp(t0,t1,q/8);return HL([-1+Math.cos(t)*(dF(u)-gi+g),Math.sin(t)*(dS(u)-gi+g),u])});
+     for(const[t0,t1,ub]of secs){const us=[top,0,-3,-6,-9,ub].filter(u=>u<=top&&u>=ub),cn=HL([-1,0,(top+ub)/2]);TAG=1;loft(us.map(u=>arc(u,t0,t1,0)),HC,{open:true,center:cn});TAG=0;loft([arc(ub+1,t0,t1,.12),arc(ub,t0,t1,.12)],cloth,{open:true,center:cn});TAG=2}
+     const knot=HL([6.9,0,-9.4]);/* 2D는 턱 밑에서 묶지만 3D는 몸통 윗면이 턱 바로 밑이라 파묻힌다 → 턱 앞쪽 가장자리에서 묶는다 */for(const t of[.95,5.33]){const a=HL([-1+Math.cos(t)*(dF(FB)-gi+.3),Math.sin(t)*(dS(FB)-gi+.3),FB+.6]),m_=HL([6.2,Math.sign(Math.sin(t))*5.4,-9.2]);tube(a,m_,.8,.8,red,.5);tube(m_,knot,.8,.8,red,.5)}
+     ellip(v=>vadd(knot,v),1.5,1.5,1.5,0,0,red);for(const sd of[-1,1])tube(knot,HL([7.6,sd*2.4,-13]),.9,.7,red,.5);HLOC=h0_}}
    if(kit&&kit.crest!=='none'){HLOC=null;tube(HL([-1,0,BU+10.5]),HL([-3,0,BU+28]),1.4,.4,p.plume||'#8a1c1c',.5)}HLOC=null;return}
   if(F==='peak'||F==='peakup'){deco(18);shell(11.6,10.8,12.5,-1,[11.8,11.6,-1,-14],[[1,0,19.5]],HC,up?WINF:null);if(!up){const PK={pointed:[14.5,16.5,15],round:[14,15,14.4],flat:[13.4,13.6,13.4],beak:[14,20.5,14.6]}[kit&&kit.vdesign||'pointed']||[14.5,16.5,15];visor([[11,11.5],[2,PK[1]],[-6,PK[2]],[-13.6,9.6]],10,5,HC,[-2,-4.5,-7])}else{face(true,true);raisedVisor(HC)}return}
   if(F==='parts'){kitParts();return}
@@ -406,7 +417,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   return[ax*r[0],ay*u[0],z*b[0],0, ax*r[1],ay*u[1],z*b[1],0, ax*r[2],ay*u[2],z*b[2],0, bx,by,0,1]}
  function render(m,pose,down,X,Y,s,W,H,DPR,o={}){if(!init())return false;if(m.style!=='knight'&&m.style!=='mech')return false;AW=o.wArm??1;HWK=1;const mk=JSON.stringify(m)+'|'+AW;/* 머리 배율은 없앰(눈·코·입·투구 눈 틈은 기본 크기 고정) */if(!o.old&&skOK()&&SKBAD!==mk){if(renderSk(m,pose,down,X,Y,s,W,H,DPR,o,mk))return true;SKBAD=mk}lastStat={cpu:0,bone:0,n:1,old:true};// 스키닝을 못 쓰면(확장 미지원·뼈 수 불일치) 예전 방식
   const w=Math.round(W*DPR),h=Math.round(H*DPR);if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h}gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);
-  V=[];IDS=[];HLA=[];SKA=[];DEC=[];MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);sword(m,K)}
+  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);sword(m,K)}
   gl.useProgram(prog);const cs=Math.cos(VIEW.yaw),sn=Math.sin(VIEW.yaw),U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('V'),false,view(X,Y,s,W,H));noSkin();gl.uniform3fv(U('L'),norm([sn*.9-cs*.7,cs*.9+sn*.7,1.1]));gl.uniform3fv(U('ink'),[.07,.065,.06]);gl.uniform3fv(U('B'),[sn*VIEW.uk,cs*VIEW.uk,VIEW.sq]);gl.uniform3fv(U('SR'),[cs,-sn,0]);gl.uniform3fv(U('SU'),[-sn*VIEW.sq,-cs*VIEW.sq,VIEW.uk]);gl.uniform1f(U('SM'),{toon:1,screen:2,matcap:3}[o.shade]||2);gl.uniform1f(U('BRU'),m.paint==='brush'?1:0);{const pp=m.pal||{},st=pp.steel||'#d9dee0';gl.uniform3fv(U('PST'),hex(st));gl.uniform3fv(U('PSH'),hex(pp.shade||hexMix(st,'#14161e',.4)));gl.uniform3fv(U('PHI'),hex(pp.hi||'#ffffff'))}
   const A=new Float32Array(V);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,A,gl.DYNAMIC_DRAW);const pL=gl.getAttribLocation(prog,'p'),nL=gl.getAttribLocation(prog,'n'),cL=gl.getAttribLocation(prog,'c');
   for(const[l,o] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,o)}const cnt=A.length/9;
@@ -437,15 +448,15 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
  const mul34=(P,Q,out,o)=>{for(let r=0;r<3;r++){const p0=P[r*4],p1=P[r*4+1],p2=P[r*4+2],p3=P[r*4+3];for(let c=0;c<4;c++)out[o+r*4+c]=p0*Q[c]+p1*Q[4+c]+p2*Q[8+c]+(c===3?p3:0)}};
  const TI=[1,0,0,0,0,1,0,0,0,0,1,0],FT=new Float64Array(12),F2=new Float64Array(12),fm2=(F,o)=>{const[p,a,b,c]=F;o[0]=a[0];o[1]=b[0];o[2]=c[0];o[3]=p[0];o[4]=a[1];o[5]=b[1];o[6]=c[1];o[7]=p[1];o[8]=a[2];o[9]=b[2];o[10]=c[2];o[11]=p[2]};
  const REST_POSE=()=>P0(POSE_PRESETS[0][1]);
- function build(m,K){if(m.style==='mech')mechM(m,K);else{knight(m,K,K.pose);sword(m,K)}HLOC=null}
+ function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);sword(m,K);pmk('칼')}HLOC=null}
  // 겉면을 기본자세에서 한 번만 만든다(모델 설정이 바뀌면 다시)
  function ensureMesh(m,key){if(MESH&&MESH.key===key)return MESH;
-  V=[];IDS=[];HLA=[];SKA=[];DEC=[];MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const rp=REST_POSE(),K=skel(m,rp,0);K.m=m;K.pose=rp;K.down=0;build(m,K);
+  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const rp=REST_POSE(),K=skel(m,rp,0);K.m=m;K.pose=rp;K.down=0;build(m,K);
   const vbo=MESH&&MESH.vbo||gl.createBuffer(),ibo=MESH&&MESH.ibo||gl.createBuffer(),hbo=MESH&&MESH.hbo||gl.createBuffer(),sbo=MESH&&MESH.sbo||gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER,vbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(V),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,ibo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(IDS),gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,hbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(HLA),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,sbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(SKA),gl.STATIC_DRAW);
   const at_=decUp(MESH&&MESH.at);
-  MESH={key,vbo,ibo,hbo,sbo,at:at_,cnt:V.length/9,nb:BI,pidn:PID+1,rinv:REST.map(F=>inv34(fm(F)))};V=[];IDS=[];HLA=[];SKA=[];return MESH}
+  MESH={key,vbo,ibo,hbo,sbo,parts:pmDone(),at:at_,cnt:V.length/9,nb:BI,pidn:PID+1,rinv:REST.map(F=>inv34(fm(F)))};V=[];IDS=[];HLA=[];SKA=[];return MESH}
  // 뼈만 계산: 같은 부품 함수를 'bone' 모드로 돌려 지금 자세의 틀을 모은다(겉면 점은 만들지 않음)
  function bones(m,pose,down){MODE='bone';BI=0;CB=0;CUR=[];HLOC=null;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;build(m,K);MODE='mesh';return K}
  const CS=[];// 군중 배치 칸(가운데부터 바깥으로)
@@ -488,4 +499,4 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-2);gl.uniform1f(U('flat_'),2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}}else FX=null;
   lastStat={cpu:performance.now()-t0,bone:tbone,n:NI,verts:ME.cnt,nb:NB};return true}
  function show(on){const c=document.getElementById('gl3d2');if(c)c.hidden=!on}
-return{render,show,init,stat:()=>lastStat,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
+return{render,show,init,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
