@@ -291,7 +291,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
      const LR=US.slice().reverse().map(u=>{const[a,b]=rad(u);return Array.from({length:n},(_,i)=>{const t=i/n*6.2832;return[Math.cos(t)*a-1,Math.sin(t)*b,u]})});
      const eyeWin=(...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length);return c[0]>2&&Math.abs(c[1])<6.6&&c[2]<3.15&&c[2]>-.6-1*(1-(c[1]/6.6)**2)};
      TAG=1;loft(LR.map(r=>r.map(HL)),HC,{center:HL([-1,0,-5]),skip:(j,i,i2)=>eyeWin(LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});TAG=2}}
-   else{face();if(F==='jin')loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});
+   else{face(true,true);/* 드림 올림: 귀는 그리지 않는다 */if(F==='jin'){const hb_=HLOC;HLOC=null;TAG=1;/* 말린 드림(접은 챙)에도 찰갑 무늬 */loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});TAG=2;HLOC=hb_}
     /* 드림 올림(2D jinDraw와 같게): 접은 챙 아래 천 가장자리, 귀 옆 속드림 자락(금나라 투구2는 뒷자락까지), 자락 밑단 천, 턱 밑에서 묶는 붉은 끈 */
     {const h0_=HLOC;HLOC=null;const FOLD=F==='jin',DB=-14.5,FB=-11.5,gi=FOLD?1:0,top=FOLD?BU+1.4:BU+.5,cloth=p.cloth||tr,red=p.flap&&p.flap!==st?p.flap:'#b3261a',
      dF=u=>u>=-6?lerp(10.4,11,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(11,14.2,clamp((-6-u)/(-6-DB),0,1)),dS=u=>u>=-6?lerp(9.8,10.6,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(10.6,13.8,clamp((-6-u)/(-6-DB),0,1));
