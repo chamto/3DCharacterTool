@@ -285,28 +285,22 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    else if(crest==='comb')ellip(v=>HL(vadd(v,[-2,0,topU-1])),9,1.1,4.2,0,0,TC,0,Math.PI/2,{capB:true});else if(crest==='horns')for(const sd of[-1,1]){const P=[[-1,sd*9.6,5],[-2,sd*14,9],[-1,sd*16,16]].map(HL);tube(P[0],P[1],2.2,1.6,'#e6dcc0',.6);tube(P[1],P[2],1.6,.3,'#e6dcc0',.6)}};
   if(F==='great'){deco(10.5);const R=[];for(const u of[-12,-6,0,6,10.5]){R.push(neckRing(10.6,10,-1,u).map(HL))}/* 통투구: 머리 좌표로 옮겨 놓음 */loft(R,HC,{capT:true,capB:true});return}
   if(F==='kettle'){deco(14);face();ellip(HL,10.6,9.8,9,-1,5,HC,0,Math.PI/2,{capB:true});loft([neckRing(14,13.4,-1,4.2).map(HL),neckRing(13.6,13,-1,5).map(HL)],HC,{capB:true,capT:true});return}
-  if(F==='jin'||F==='jin2'){const BU=3;
-   if(up){/* 드림 올림(참고 그림): 사발이 층층이 좁아지는 찰갑 돔. 층마다 한 단 물러나며 꼭대기에 금 꼭지 */
-    const TIER=[...(F==='jin'?[]:[[3.4,11,10.4]]),[9.6,10.7,10.2],[12,10.4,9.9],[12,9.5,9.1],[14.4,9.2,8.8],[14.4,8,7.6],[16.6,7.7,7.3],[16.6,6.2,5.9],[18.2,5.6,5.3],[19.4,2.8,2.6],[20,.2,.2]],h0_=HLOC;HLOC=null;TAG=4;loft(TIER.map(([u,f,r])=>neckRing(f,r,-1,u).map(HL)),HC,{capT:true});TAG=2;HLOC=h0_;tube(HL([-1,0,19.6]),HL([-1,0,22.6]),1.1,.35,tr,.5)}
-   else ellip(HL,10.8,10,10.5,-1,BU,HC,0,Math.PI/2,{capB:true});
+  if(F==='jin'||F==='jin2'){const BU=3;ellip(HL,10.8,10,10.5,-1,BU,HC,0,Math.PI/2,{capB:true});
    if(!up){face(true,true);// 드림 내림: 눈구멍을 실제로 뚫고, 안의 진짜 얼굴(눈 모양·눈썹·안대 설정 그대로)이 보이게
     if(MODE==='mesh'){const n=40,US=[BU+.5,2.6,1.7,.8,-.1,-1,-1.9,-2.8,-4.2,-6,-9,-12,-14.5],rad=u=>u>=-6?[lerp(11,10.4,(u+6)/(BU+6.5)),lerp(10.6,9.8,(u+6)/(BU+6.5))]:[lerp(14.2,11,(u+14.5)/8.5),lerp(13.8,10.6,(u+14.5)/8.5)];
      const LR=US.slice().reverse().map(u=>{const[a,b]=rad(u);return Array.from({length:n},(_,i)=>{const t=i/n*6.2832;return[Math.cos(t)*a-1,Math.sin(t)*b,u]})});
      const eyeWin=(...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length);return c[0]>2&&Math.abs(c[1])<6.6&&c[2]<3.15&&c[2]>-.6-1*(1-(c[1]/6.6)**2)};
      TAG=1;loft(LR.map(r=>r.map(HL)),HC,{center:HL([-1,0,-5]),skip:(j,i,i2)=>eyeWin(LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});TAG=2}}
-   else{face(true,true);hairCap();/* 드림 올림: 귀는 그리지 않고, 뒤통수 맨머리에 머리카락 */if(F==='jin'){const hb_=HLOC;HLOC=null;TAG=4;/* 말린 드림(접은 챙): 윗면까지 찰갑 무늬. 아래로 갈수록 살짝 벌어진다 */loft([neckRing(12.5,12,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});TAG=2;HLOC=hb_}
-    /* 드림 올림(참고 그림): 귀 옆으로 곧게 내려오는 좁고 긴 속드림 자락 두 장(금나라 투구2는 뒷자락까지), 자락 밑단 천, 밑단에 늘어진 붉은 끈과 매듭 */
-    {const h0_=HLOC;HLOC=null;const FOLD=F==='jin',DB=-14.5,UB=-7.5,top=FOLD?BU+1.4:BU+.5,cloth=p.cloth||tr,red=p.flap&&p.flap!==st?p.flap:'#b3261a',
+   else{face(true,true);hairCap();/* 드림 올림: 귀는 그리지 않고, 뒤통수 맨머리에 머리카락 */if(F==='jin'){const hb_=HLOC;HLOC=null;TAG=4;/* 말린 드림(접은 챙): 윗면까지 찰갑 무늬 */loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});TAG=2;HLOC=hb_}
+    /* 드림 올림(2D jinDraw와 같게): 접은 챙 아래 천 가장자리, 귀 옆 속드림 자락(금나라 투구2는 뒷자락까지), 자락 밑단 천, 턱 밑에서 묶는 붉은 끈 */
+    {const h0_=HLOC;HLOC=null;const FOLD=F==='jin',DB=-14.5,FB=-11.5,gi=FOLD?1:0,top=FOLD?BU+1.4:BU+.5,cloth=p.cloth||tr,red=p.flap&&p.flap!==st?p.flap:'#b3261a',
      dF=u=>u>=-6?lerp(10.4,11,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(11,14.2,clamp((-6-u)/(-6-DB),0,1)),dS=u=>u>=-6?lerp(9.8,10.6,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(10.6,13.8,clamp((-6-u)/(-6-DB),0,1));
-     if(FOLD){TAG=0;loft([neckRing(12.56,12.06,-1,BU+1.6).map(HL),neckRing(12.56,12.06,-1,BU+2.8).map(HL)],cloth,{capB:true,capT:true});TAG=2}/* 챙 밑단 천 */
-     const SD=[[.7,1.3],[4.98,5.58]],secs=[...SD.map(([t0,t1])=>({t0,t1,ub:UB,st:1})),...(FOLD?[]:[{t0:1.75,t1:Math.PI,ub:DB,st:0},{t0:Math.PI,t1:4.53,ub:DB,st:0}])],
-      arc=(u,t0,t1,g,st_)=>Array.from({length:9},(_,q)=>{const t=lerp(t0,t1,q/8);return st_?HL([-1+Math.cos(t)*(11.2+g),Math.sin(t)*(10.7+g),u]):HL([-1+Math.cos(t)*(dF(u)+g),Math.sin(t)*(dS(u)+g),u])});
-     for(const{t0,t1,ub,st:st_}of secs){const us=[top,0,-3,-6,-9,ub].filter(u=>u<=top&&u>=ub),cn=HL([-1,0,(top+ub)/2]);TAG=1;loft(us.map(u=>arc(u,t0,t1,0,st_)),HC,{open:true,center:cn});TAG=0;loft([arc(ub+1,t0,t1,.12,st_),arc(ub,t0,t1,.12,st_)],cloth,{open:true,center:cn});TAG=2}
-     for(const[t0,t1]of SD){const tm=(t0+t1)/2,sg=Math.sign(Math.sin(tm)),ax=-1+Math.cos(tm)*11.2,ay=Math.sin(tm)*10.7,P=(dx,dy,dz)=>HL([ax+dx,ay+sg*dy,UB+dz]);
-      tube(P(0,0,.6),P(.5,.9,-1.6),.7,.7,red,.5);tube(P(.5,.9,-1.6),P(1.6,2.6,-3.6),.7,.7,red,.5);ellip(v=>vadd(P(1.6,2.6,-3.6),v),1.1,1.1,1.1,0,0,tr);
-      for(const[x,y,z]of[[2.8,3.4,-5.8],[.6,3.8,-5.6],[2.2,1.4,-6]])tube(P(1.6,2.6,-3.6),P(x,y,z),.5,.3,red,.5)}/* 매듭 아래 술 */
-     HLOC=h0_}}
-   if(kit&&kit.crest!=='none'){HLOC=null;tube(HL([-1,0,up?BU+20.5:BU+10.5]),HL([-3,0,up?BU+37.5:BU+28]),1.4,.4,p.plume||'#8a1c1c',.5)}HLOC=null;return}
+     if(FOLD){TAG=0;loft([neckRing(12.16,11.66,-1,BU+1.6).map(HL),neckRing(12.16,11.66,-1,BU+2.8).map(HL)],cloth,{capB:true,capT:true});TAG=2}/* 챙 밑단 천 */
+     const secs=FOLD?[[.95,1.85,FB],[4.43,5.33,FB]]:[[.95,1.75,FB],[1.75,Math.PI,DB],[Math.PI,4.53,DB],[4.53,5.33,FB]],arc=(u,t0,t1,g)=>Array.from({length:9},(_,q)=>{const t=lerp(t0,t1,q/8);return HL([-1+Math.cos(t)*(dF(u)-gi+g),Math.sin(t)*(dS(u)-gi+g),u])});
+     for(const[t0,t1,ub]of secs){const us=[top,0,-3,-6,-9,ub].filter(u=>u<=top&&u>=ub),cn=HL([-1,0,(top+ub)/2]);TAG=1;loft(us.map(u=>arc(u,t0,t1,0)),HC,{open:true,center:cn});TAG=0;loft([arc(ub+1,t0,t1,.12),arc(ub,t0,t1,.12)],cloth,{open:true,center:cn});TAG=2}
+     const knot=HL([6.9,0,-9.4]);/* 2D는 턱 밑에서 묶지만 3D는 몸통 윗면이 턱 바로 밑이라 파묻힌다 → 턱 앞쪽 가장자리에서 묶는다 */for(const t of[.95,5.33]){const a=HL([-1+Math.cos(t)*(dF(FB)-gi+.3),Math.sin(t)*(dS(FB)-gi+.3),FB+.6]),m_=HL([6.2,Math.sign(Math.sin(t))*5.4,-9.2]);tube(a,m_,.8,.8,red,.5);tube(m_,knot,.8,.8,red,.5)}
+     ellip(v=>vadd(knot,v),1.5,1.5,1.5,0,0,red);for(const sd of[-1,1])tube(knot,HL([7.6,sd*2.4,-13]),.9,.7,red,.5);HLOC=h0_}}
+   if(kit&&kit.crest!=='none'){HLOC=null;tube(HL([-1,0,BU+10.5]),HL([-3,0,BU+28]),1.4,.4,p.plume||'#8a1c1c',.5)}HLOC=null;return}
   if(F==='peak'||F==='peakup'){deco(18);shell(11.6,10.8,12.5,-1,[11.8,11.6,-1,-14],[[1,0,19.5]],HC,up?WINF:null);if(!up){const PK={pointed:[14.5,16.5,15],round:[14,15,14.4],flat:[13.4,13.6,13.4],beak:[14,20.5,14.6]}[kit&&kit.vdesign||'pointed']||[14.5,16.5,15];visor([[11,11.5],[2,PK[1]],[-6,PK[2]],[-13.6,9.6]],10,5,HC,[-2,-4.5,-7])}else{face(true,true);raisedVisor(HC)}return}
   if(F==='parts'){kitParts();return}
   // 기본(면갑 투구 등): 2D helmBody와 같은 위도 고리 + 목둘레 고리
