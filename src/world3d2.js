@@ -72,6 +72,8 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   {const tb=document.querySelector('#tabs button[aria-selected="true"]'),tl=document.getElementById('tl'),want=tb&&tb.dataset.tab==='anim'?'':'none';if(tl&&tl.style.display!==want){tl.style.display=want;window.dispatchEvent(new Event('resize'))}}
   /* 게임에서 가져오기: 1안·2안·3안 묶음 제거 */
   for(const sb of[...pn.querySelectorAll('.sub')])if(/^[123]안/.test(sb.textContent.trim())){const nx=sb.nextElementSibling;if(nx&&nx.classList.contains('seg'))nx.remove();sb.remove()}
+  /* 그림체(도포 무사·갑옷 무사·거대 기사·판금 기사·로봇 모델) 항목 제거. 같은 칸의 '이름'은 남긴다 */
+  for(const h of[...pn.querySelectorAll('h3')])if(h.textContent.trim()==='그림체'){const nx=h.nextElementSibling;if(nx&&nx.classList.contains('seg'))nx.remove();h.remove()}
   /* 투구 형태: 조관 추가 */
   const fb=pn.querySelector('button[data-act="hkit"][data-k="form"]');if(fb&&!pn.querySelector('button[data-act="hkit"][data-k="form"][data-v="joguan"]')){let f='';try{f=proj.model.hkit.form}catch(_){}const b=document.createElement('button');b.dataset.act='hkit';b.dataset.k='form';b.dataset.v='joguan';b.setAttribute('aria-pressed',String(f==='joguan'));b.textContent='조관';fb.parentNode.appendChild(b)}
   const isModel=!!pn.querySelector('#mname');
@@ -80,7 +82,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(w3&&isModel&&!document.getElementById('w3opt')){const g=document.createElement('section');g.className='grp';g.id='w3opt';g.innerHTML='<h3>3D 표시</h3><div class="sub">명암</div><div class="seg" id="w3sh"></div>';const sh=g.querySelector('#w3sh'),org=[...document.querySelectorAll('#shadesw button[data-shade]')];
    const syncSh=()=>sh.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',org[i]?org[i].getAttribute('aria-pressed')||'false':'false'));
    org.forEach(o=>{const b=document.createElement('button');b.textContent=o.textContent;b.onclick=()=>{o.click();setTimeout(syncSh,0)};sh.appendChild(b)});syncSh();
-   for(const[id,nm]of[['w3o','외곽선'],['w3b','경계선'],['w3a','갑옷줄']]){const o=document.getElementById(id),ov=document.getElementById(id+'v');if(!o)continue;const lb=document.createElement('label');lb.className='sl';lb.innerHTML='<span>'+nm+'</span><input type="range"><b></b>';const r=lb.querySelector('input'),bv=lb.querySelector('b');r.min=o.min;r.max=o.max;r.step=o.step;r.value=o.value;bv.textContent=ov?ov.textContent:o.value;r.oninput=()=>{o.value=r.value;o.dispatchEvent(new Event('input'));bv.textContent=ov?ov.textContent:r.value};g.appendChild(lb)}
+   for(const[id,nm]of[['w3o','외곽선'],['w3b','경계선']]){/* 갑옷줄 항목은 뺐다 */const o=document.getElementById(id),ov=document.getElementById(id+'v');if(!o)continue;const lb=document.createElement('label');lb.className='sl';lb.innerHTML='<span>'+nm+'</span><input type="range"><b></b>';const r=lb.querySelector('input'),bv=lb.querySelector('b');r.min=o.min;r.max=o.max;r.step=o.step;r.value=o.value;bv.textContent=ov?ov.textContent:o.value;r.oninput=()=>{o.value=r.value;o.dispatchEvent(new Event('input'));bv.textContent=ov?ov.textContent:r.value};g.appendChild(lb)}
    pn.insertBefore(g,pn.firstChild)}
   /* 금나라 투구를 고르면 드림 조정(단·단차·층 겹침) */
   let jin=false;try{const m=proj.model;jin=m.helm==='kit'&&m.hkit&&m.hkit.form==='jin'}catch(_){}
