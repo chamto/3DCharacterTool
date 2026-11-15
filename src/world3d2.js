@@ -63,10 +63,13 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
  /* 표시줄에 '드림 단' 슬라이더를 끼워 넣는다(editor.js·shell_head.html은 건드리지 않음) */
  function mkUI(){/* 3D 월드2 화면 조정: 명암·외곽선·경계선·갑옷줄은 모델 탭 맨 위로, 금나라 투구 드림 조정은 모델 탭의 투구 칸으로 옮긴다. editor.js·helmimport.js·shell_head.html은 건드리지 않고, 모델 탭이 다시 그려질 때마다 덧붙인다 */
   const sw=document.getElementById('shadesw');if(!sw||sw._p3)return;sw._p3=1;
+  {const b3=document.querySelector('#worldsw button[data-world="3d"]');if(b3)b3.remove();const b32=document.querySelector('#worldsw button[data-world="3d2"]');if(b32)b32.textContent='3D 월드';try{if(WORLD==='3d')setWorld('3d2')}catch(_){}}/* 예전 3D 월드 버튼은 없애고 3D 월드2를 '3D 월드'로 부른다 */
   for(const el of[sw.querySelector('span'),...sw.querySelectorAll('button[data-shade]'),...['w3o','w3b','w3a'].map(id=>{const e=document.getElementById(id);return e&&e.closest('label')})])if(el)el.style.display='none';/* 무대 위 표시줄에서는 숨긴다(원래 조작부는 그대로 두고 모델 탭의 대리 조작부가 움직인다) */
   const pn=document.getElementById('panel');if(pn)new MutationObserver(()=>patchPanel()).observe(pn,{childList:true});patchPanel();orbitUI()}
  let P3W=null;
  function patchPanel(){const pn=document.getElementById('panel');if(!pn)return;let w3=false;try{w3=WORLD==='3d2'}catch(_){}
+  /* 아래 재생줄(재생·키·+키)은 동작 탭에서만 보인다 */
+  {const tb=document.querySelector('#tabs button[aria-selected="true"]'),tl=document.getElementById('tl'),want=tb&&tb.dataset.tab==='anim'?'':'none';if(tl&&tl.style.display!==want){tl.style.display=want;window.dispatchEvent(new Event('resize'))}}
   /* 게임에서 가져오기: 1안·2안·3안 묶음 제거 */
   for(const sb of[...pn.querySelectorAll('.sub')])if(/^[123]안/.test(sb.textContent.trim())){const nx=sb.nextElementSibling;if(nx&&nx.classList.contains('seg'))nx.remove();sb.remove()}
   /* 투구 형태: 조관 추가 */
@@ -82,7 +85,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 금나라 투구를 고르면 드림 조정(단·단차·층 겹침) */
   let jin=false;try{const m=proj.model;jin=m.helm==='kit'&&m.hkit&&m.hkit.form==='jin'}catch(_){}
   const od=document.getElementById('w3drim');if(od&&!jin)od.remove();
-  if(jin&&!document.getElementById('w3drim')){const anc=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='드림 상태');const at=anc&&anc.nextElementSibling;if(at){const g=document.createElement('div');g.id='w3drim';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">드림 조정 · 드림 올림(3D 월드2)</div>';
+  if(jin&&!document.getElementById('w3drim')){const anc=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='드림 상태');const at=anc&&anc.nextElementSibling;if(at){const g=document.createElement('div');g.id='w3drim';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">드림 조정 · 드림 올림(3D 월드)</div>';
     for(const[k,nm,mn,mx,st,get,fmt]of[['drimStep','단',1,4,1,dstep,v=>v+'단'],['drimGap','단차',0,2,.05,dgap,v=>(+v).toFixed(2)],['drimOv','층 겹침',0,6,.1,dov,v=>(+v).toFixed(1)]]){const lb=document.createElement('label');lb.className='sl';lb.innerHTML='<span>'+nm+'</span><input type="range"><b></b>';const r=lb.querySelector('input'),bv=lb.querySelector('b');r.min=mn;r.max=mx;r.step=st;r.value=String(get());bv.textContent=fmt(r.value);r.oninput=()=>{bv.textContent=fmt(r.value);try{opt[k]=+r.value;LS.set('model-ed-opt',opt);wake(500)}catch(_){}};g.appendChild(lb)}
     at.after(g)}}}
  /* 카메라 위아래 회전 제한 풀기: editor.js는 VIEW.sq를 .2~1로 묶는다. 3D 월드2에서 시점을 돌릴 때만 그 뒤에 이어 받아 -.95~1(아래에서 올려다보기까지)로 넓힌다. 다른 월드로 나가면 원래 범위로 되돌린다 */
@@ -314,7 +317,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    else if(crest==='comb')ellip(v=>HL(vadd(v,[-2,0,topU-1])),9,1.1,4.2,0,0,TC,0,Math.PI/2,{capB:true});else if(crest==='horns')for(const sd of[-1,1]){const P=[[-1,sd*9.6,5],[-2,sd*14,9],[-1,sd*16,16]].map(HL);tube(P[0],P[1],2.2,1.6,'#e6dcc0',.6);tube(P[1],P[2],1.6,.3,'#e6dcc0',.6)}};
   if(F==='great'){deco(10.5);const R=[];for(const u of[-12,-6,0,6,10.5]){R.push(neckRing(10.6,10,-1,u).map(HL))}/* 통투구: 머리 좌표로 옮겨 놓음 */loft(R,HC,{capT:true,capB:true});return}
   if(F==='kettle'){deco(14);face();ellip(HL,10.6,9.8,9,-1,5,HC,0,Math.PI/2,{capB:true});loft([neckRing(14,13.4,-1,4.2).map(HL),neckRing(13.6,13,-1,5).map(HL)],HC,{capB:true,capT:true});return}
-  if(F==='joguan'){/* 조관: 빵모 1단 모양의 검은 관(찰갑 무늬 없음). 원래 사발 + 사발 밑동에서 위로 벌어지는 속 빈 챙 벽. 귀 보임 */const BU=3,BK='#1d1b19',H=5,U=BU+H;face(true,false);hairCap(false);HLOC=null;TAG=2;ellip(HL,10.8,10,10.5,-1,BU,BK,0,Math.PI/2,{capB:true});loft([[11.2,10.7,BU],[11.9,11.4,BU+H*.45],[12.6,12.1,U],[13.2,12.7,U+.15],[13.4,12.9,U+.5],[13.1,12.6,U+.8],[12.5,12,U+.55],[12.1,11.6,U+.1],[11.5,11,BU+H*.55],[10.9,10.1,BU+.2]].map(([f,r,u])=>neckRing(f,r,-1,u).map(HL)),BK,{});TAG=2;HLOC=null;return}
+  if(F==='joguan'){/* 조관: 빵모 1단 모양의 검은 관(찰갑 무늬 없음). 원래 사발 + 사발 밑동에서 위로 벌어지는 속 빈 챙 벽. 귀 보임 */const BU=3,BK=kit&&kit.colors&&kit.colors.main?kit.colors.main:'#1d1b19',H=5,U=BU+H;/* 색: 투구 '몸체' 색(정하지 않으면 검정) */face(true,false);hairCap(false);HLOC=null;TAG=2;ellip(HL,10.8,10,10.5,-1,BU,BK,0,Math.PI/2,{capB:true});loft([[11.2,10.7,BU],[11.9,11.4,BU+H*.45],[12.6,12.1,U],[13.2,12.7,U+.15],[13.4,12.9,U+.5],[13.1,12.6,U+.8],[12.5,12,U+.55],[12.1,11.6,U+.1],[11.5,11,BU+H*.55],[10.9,10.1,BU+.2]].map(([f,r,u])=>neckRing(f,r,-1,u).map(HL)),BK,{});deco(BU+10.5);/* 꼭대기 장식(볏·깃털·뿔·없음): 투구 칸의 '꼭대기 장식' 그대로 */TAG=2;HLOC=null;return}
   if(F==='jin'||F==='jin2'){const BU=3,BM=up&&F==='jin'&&dshape()>0;/* BM: 빵모·강시모(투구는 드림 내림 때 모델의 원래 사발 그대로, 드림만 말아 올림. 귀를 가리는 자락 없음) */ellip(HL,10.8,10,10.5,-1,BU,HC,0,Math.PI/2,{capB:true});
    if(!up){face(true,true);// 드림 내림: 눈구멍을 실제로 뚫고, 안의 진짜 얼굴(눈 모양·눈썹·안대 설정 그대로)이 보이게
     if(MODE==='mesh'){const n=40,US=[BU+.5,2.6,1.7,.8,-.1,-1,-1.9,-2.8,-4.2,-6,-9,-12,-14.5],rad=u=>u>=-6?[lerp(11,10.4,(u+6)/(BU+6.5)),lerp(10.6,9.8,(u+6)/(BU+6.5))]:[lerp(14.2,11,(u+14.5)/8.5),lerp(13.8,10.6,(u+14.5)/8.5)];
