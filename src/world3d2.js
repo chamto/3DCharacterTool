@@ -32,14 +32,14 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   vec3 col=mix(base,shC,shd);col=mix(col,dpC,dp);
   if(BRU>.5){col=mix(col,shC*.9,shd*S.b*.35);col=mix(col,col*1.07,(1.-shd)*S.r*.35);col=mix(col,hiC,hl*(.45+.55*S.r));}else col=mix(col,hiC,hl);// 붓터치: 그늘 안 굵은 붓 자국, 밝은 면 마른 붓 긁힘, 광택은 붓 획 모양
   if(vh.w>1.5&&vh.w<2.5){float az=atan(vh.y,vh.x+1.);col=mix(col,col*.5,texture2D(LT,vec2(az*8.,vh.z/2.1),-16.).b*.85);}// 사슬 무늬(2D 사슬 두건과 같은 엇갈린 반달 고리): 찰갑 그림 B칸에 구워 둔 무늬
-  if(vt>.5&&vt<1.5){// 찰갑: 미리 그려 둔 찰갑 그림(찰갑선 1.5배 기준, 판 2칸×2줄 한 장)을 기본자세 위치에 옆면·앞면 투영으로 입힌다(R=먹선, G=판 안 높이)
-   vec3 an=abs(normalize(vrn));float wy=an.x/(an.x+an.y+1e-4);vec4 T=mix(texture2D(LT,vec2(vw.x/5.4,vw.z/6.8)),texture2D(LT,vec2(vw.y/5.4,vw.z/6.8)),wy);
-   float side=smoothstep(.9,.6,an.z)*(1.-txa);/* 투구 그림(드림 눈구멍 등)이 칠해진 곳엔 찰갑 무늬 없음 */col*=mix(1.,.9+.14*T.g,side);col=mix(col,vec3(.07,.065,.06),T.r*side);}
+  if((vt>.5&&vt<1.5)||(vt>3.5&&vt<4.5)){// 찰갑(꼬리표 4는 위를 향한 면에도 입힌다): 미리 그려 둔 찰갑 그림(찰갑선 1.5배 기준, 판 2칸×2줄 한 장)을 기본자세 위치에 옆면·앞면 투영으로 입힌다(R=먹선, G=판 안 높이)
+   vec3 an=abs(normalize(vrn));float wy=an.x/(an.x+an.y+1e-4);vec4 T=mix(texture2D(LT,vec2(vw.x/5.4,vw.z/6.8)),texture2D(LT,vec2(vw.y/5.4,vw.z/6.8)),wy);float tz=step(3.5,vt)*smoothstep(.6,.9,an.z);T=mix(T,texture2D(LT,vw.xy/5.4),tz);/* 위를 향한 면: 같은 찰갑 그림을 위에서 내려다본 투영으로 읽는다 */
+   float side=mix(smoothstep(.9,.6,an.z),1.,tz)*(1.-txa);/* 투구 그림(드림 눈구멍 등)이 칠해진 곳엔 찰갑 무늬 없음 */col*=mix(1.,.9+.14*T.g,side);col=mix(col,vec3(.07,.065,.06),T.r*side);}
   if(vh.w>2.5&&vh.w<3.5){float az=atan(vh.y,vh.x+1.);vec4 f=texture2D(FT,vec2(.5+az/6.2832,(20.-vh.z)/34.));col=mix(col,f.rgb,f.a);}// 얼굴 그림: 눈썹·입·코 선·X 눈·안대와 끈·콧수염·수염선(폴리곤 대신 머리 국소 좌표 그림)
   if(vh.w>3.5&&vh.w<4.5){col=mix(col,vec3(.11,.1,.09),texture2D(LT,vec2(atan(vh.y,vh.x)/6.2832+.5,clamp(vh.z/14.,.01,.99)),-16.).a);}// 정강이·아래팔 능선: 통 둘레 각도·반지름으로 찾아 읽는 먹선(찰갑 그림 A칸)
   col=mix(col,PSH*.95,dcR);// 가슴 가운데 능선(장식표 몸통 줄에서)
   col=mix(col,vec3(.114,.102,.09),dcK);// 갑옷줄 먹선·리벳: 명암 없이
-  if(vt>2.5)col=vc;// 갑옷줄 먹선: 명암·광택 없이
+  if(vt>2.5&&vt<3.5)col=vc;// 갑옷줄 먹선: 명암·광택 없이
   gl_FragColor=vec4(col,1.);}`;
  const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(s);return s};
  // 관절 외곽선(부품 경계선): 부품 번호를 따로 그린 뒤, 이웃 픽셀의 번호가 다르면 먹선을 긋는다 → 2D처럼 부품마다 외곽선
@@ -291,7 +291,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
      const LR=US.slice().reverse().map(u=>{const[a,b]=rad(u);return Array.from({length:n},(_,i)=>{const t=i/n*6.2832;return[Math.cos(t)*a-1,Math.sin(t)*b,u]})});
      const eyeWin=(...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length);return c[0]>2&&Math.abs(c[1])<6.6&&c[2]<3.15&&c[2]>-.6-1*(1-(c[1]/6.6)**2)};
      TAG=1;loft(LR.map(r=>r.map(HL)),HC,{center:HL([-1,0,-5]),skip:(j,i,i2)=>eyeWin(LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});TAG=2}}
-   else{face(true,true);/* 드림 올림: 귀는 그리지 않는다 */if(F==='jin'){const hb_=HLOC;HLOC=null;TAG=1;/* 말린 드림(접은 챙)에도 찰갑 무늬 */loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});TAG=2;HLOC=hb_}
+   else{face(true,true);hairCap();/* 드림 올림: 귀는 그리지 않고, 뒤통수 맨머리에 머리카락 */if(F==='jin'){const hb_=HLOC;HLOC=null;TAG=4;/* 말린 드림(접은 챙): 윗면까지 찰갑 무늬 */loft([neckRing(12.1,11.6,-1,BU+1.6).map(HL),neckRing(11.2,10.7,-1,BU+6.6).map(HL)],HC,{capB:true,capT:true});TAG=2;HLOC=hb_}
     /* 드림 올림(2D jinDraw와 같게): 접은 챙 아래 천 가장자리, 귀 옆 속드림 자락(금나라 투구2는 뒷자락까지), 자락 밑단 천, 턱 밑에서 묶는 붉은 끈 */
     {const h0_=HLOC;HLOC=null;const FOLD=F==='jin',DB=-14.5,FB=-11.5,gi=FOLD?1:0,top=FOLD?BU+1.4:BU+.5,cloth=p.cloth||tr,red=p.flap&&p.flap!==st?p.flap:'#b3261a',
      dF=u=>u>=-6?lerp(10.4,11,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(11,14.2,clamp((-6-u)/(-6-DB),0,1)),dS=u=>u>=-6?lerp(9.8,10.6,clamp((BU+.5-u)/(BU+6.5),0,1)):lerp(10.6,13.8,clamp((-6-u)/(-6-DB),0,1));
