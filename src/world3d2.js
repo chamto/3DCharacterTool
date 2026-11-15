@@ -72,13 +72,18 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   {const tb=document.querySelector('#tabs button[aria-selected="true"]'),tl=document.getElementById('tl'),want=tb&&tb.dataset.tab==='anim'?'':'none';if(tl&&tl.style.display!==want){tl.style.display=want;window.dispatchEvent(new Event('resize'))}}
   /* 게임에서 가져오기: 1안·2안·3안 묶음 제거 */
   for(const sb of[...pn.querySelectorAll('.sub')])if(/^[123]안/.test(sb.textContent.trim())){const nx=sb.nextElementSibling;if(nx&&nx.classList.contains('seg'))nx.remove();sb.remove()}
+  /* 게임에서 가져오기: 백기사1·백기사1 붓터치 제거 */
+  for(const b of[...pn.querySelectorAll('button[data-act="src"]')])if(['백기사1','백기사1 · 붓터치'].includes(b.textContent.trim()))b.remove();
   /* 그림체(도포 무사·갑옷 무사·거대 기사·판금 기사·로봇 모델) 항목 제거. 같은 칸의 '이름'은 남긴다 */
   for(const h of[...pn.querySelectorAll('h3')])if(h.textContent.trim()==='그림체'){const nx=h.nextElementSibling;if(nx&&nx.classList.contains('seg'))nx.remove();h.remove()}
   /* 투구 형태: 조관 추가 */
   const fb=pn.querySelector('button[data-act="hkit"][data-k="form"]');if(fb&&!pn.querySelector('button[data-act="hkit"][data-k="form"][data-v="joguan"]')){let f='';try{f=proj.model.hkit.form}catch(_){}const b=document.createElement('button');b.dataset.act='hkit';b.dataset.k='form';b.dataset.v='joguan';b.setAttribute('aria-pressed',String(f==='joguan'));b.textContent='조관';fb.parentNode.appendChild(b)}
   /* 투구 형태: 클로즈헬름 추가. 고르면 면갑 상태(내림·올림) */
   {let f='';try{f=proj.model.hkit.form}catch(_){}if(fb&&!pn.querySelector('button[data-act="hkit"][data-k="form"][data-v="close"]')){const b=document.createElement('button');b.dataset.act='hkit';b.dataset.k='form';b.dataset.v='close';b.setAttribute('aria-pressed',String(f==='close'));b.textContent='클로즈헬름';fb.parentNode.appendChild(b)}
-   const ov_=document.getElementById('w3cvis');if(ov_&&f!=='close')ov_.remove();if(fb&&f==='close'&&!document.getElementById('w3cvis')){let vz='down';try{vz=proj.model.hkit.visor==='up'?'up':'down'}catch(_){}const g=document.createElement('div');g.id='w3cvis';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">면갑 상태</div><div class="seg">'+[['down','면갑 내리기'],['up','면갑 올리기']].map(([v,l])=>'<button data-act="hkit" data-k="visor" data-v="'+v+'" aria-pressed="'+(vz===v)+'">'+l+'</button>').join('')+'</div>';fb.parentNode.after(g)}}
+   let fc='';try{fc=proj.model.hkit.face}catch(_){}const pc=f==='parts'&&fc==='close',cv_=f==='close'||pc;/* pc: 조립 몸체의 클로즈 얼굴 */
+   const fcb=pn.querySelector('button[data-act="hkit"][data-k="face"]');if(fcb&&!pn.querySelector('button[data-act="hkit"][data-k="face"][data-v="close"]')){const b=document.createElement('button');b.dataset.act='hkit';b.dataset.k='face';b.dataset.v='close';b.setAttribute('aria-pressed',String(fc==='close'));b.textContent='클로즈';fcb.parentNode.appendChild(b)}/* 얼굴 가리개: 클로즈 */
+   if(pc)for(const sb of[...pn.querySelectorAll('.sub')])if(['눈구멍','숨구멍'].includes(sb.textContent.trim())){const nx=sb.nextElementSibling;if(nx&&nx.classList.contains('seg'))nx.remove();sb.remove()}/* 클로즈 얼굴은 눈 틈이 정해져 있다 */
+   const ov_=document.getElementById('w3cvis');if(ov_&&(!cv_||(ov_.dataset.pc==='1')!==pc))ov_.remove();if(fb&&cv_&&!document.getElementById('w3cvis')){let vz='down';try{vz=proj.model.hkit.visor==='up'?'up':'down'}catch(_){}const g=document.createElement('div');g.id='w3cvis';g.dataset.pc=pc?'1':'0';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">면갑 상태</div><div class="seg">'+[['down','면갑 내리기'],['up','면갑 올리기']].map(([v,l])=>'<button data-act="hkit" data-k="visor" data-v="'+v+'" aria-pressed="'+(vz===v)+'">'+l+'</button>').join('')+'</div>';((pc&&fcb)?fcb.parentNode:fb.parentNode).after(g)}}
   /* 갑옷: 강철 치마(톤렛). 3D 월드에서만, 판금 갑옷일 때 */
   {let ar='plate',tn=false;try{ar=proj.model.armor||'plate';tn=!!proj.model.tonlet}catch(_){}const ot=document.getElementById('w3ton');if(ot&&(!w3||ar==='jin'))ot.remove();
    if(w3&&ar!=='jin'&&!document.getElementById('w3ton')){const anc=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='겉옷 (서코트)');const at=anc&&anc.nextElementSibling;if(at){const g=document.createElement('div');g.id='w3ton';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">강철 치마 (톤렛)</div><div class="seg">'+[['1','입음'],['0','없음']].map(([v,l])=>'<button data-act="mbool" data-k="tonlet" data-v="'+v+'" aria-pressed="'+((v==='1')===tn)+'">'+l+'</button>').join('')+'</div>';at.after(g)}}}
@@ -290,6 +295,17 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    const R=[],RS=[];const u0=nodes[nodes.length-1][0],u1=nodes[0][0];for(let j=0;j<=10;j++){const u=lerp(u0,u1,j/10),a=[];for(let i=0;i<=12;i++){const r=lerp(-9,9,i/12);a.push(HL([fcu(u)-kk(u)*r*r+.3,r,u]))}R.push(a)}loft(R,col,{open:true,center:HL([0,0,0])});
   };
   // ─ 부품 조립 투구(2D kitDraw와 같은 치수): 정수리 모양·폭·높이, 얼굴(트인·코가리개·볼가리개·면갑·가면), 챙, 목가리개, 띠·리벳·세로띠, 장식 ─
+  /* 클로즈 면갑 공용(클로즈헬름·조립 몸체 '클로즈' 얼굴): SR(u)=사발 반지름[앞,옆]. 턱가리개(목~코 밑, 앞 능선)와 뾰족한 면갑(옆 회전축에 걸림, 올리면 축을 중심으로 젖힘)·눈 틈·회전축 리벳. win은 사발에서 비울 앞쪽 */
+  const cTab=(T_,u)=>{if(u>=T_[0][0])return T_[0][1];for(let i=0;i<T_.length-1;i++){const[a0,v0]=T_[i],[a1,v1]=T_[i+1];if(u<=a0&&u>=a1)return lerp(v0,v1,(a0-u)/(a0-a1))}return T_[T_.length-1][1]};
+  const closeVis=(CF,RF,RR,SR,up_,col)=>{const TV=.6*Math.PI,ee=t=>(Math.abs(t)/TV)**2,SP=(t,u,g,pr)=>{const[a,b]=SR(u);return[CF+(a+g)*Math.cos(t)+pr*Math.max(0,1-Math.abs(t)/1.25)**2,(b+g)*Math.sin(t),u]},vTop=t=>lerp(7.5,2.6,ee(t)),PIV=[CF+(SR(1.5)[0]+1.3)*Math.cos(TV),0,1.5],th=up_?1:0,PV=[[7.5,1],[3.5,4.6],[.8,8],[-2.2,8.2]],
+    ROT=q=>{if(!th)return q;const df=q[0]-PIV[0],du=q[2]-PIV[2],c=Math.cos(th),s_=Math.sin(th);return[PIV[0]+df*c-du*s_,q[1],PIV[2]+df*s_+du*c]};
+   const win=(...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length),tt=Math.atan2(c[1]/RR,(c[0]-CF)/RF);return Math.abs(tt)<TV*.9&&c[2]<vTop(tt)-1.2};
+   const draw=()=>{const h0=HLOC,t0=TAG;HLOC=null;TAG=2;if(MODE==='mesh'){const NT=24,cols=k=>lerp(-TV,TV,k/NT);
+     {const PB=[[1.5,7],[-1.5,7],[-4.5,6.8],[-8,4.2],[-11,1.6],[-13.5,.6]],R=[];for(let v=0;v<=8;v++){const a=[];for(let k=0;k<=NT;k++){const t=cols(k),u=lerp(-13.5,lerp(-1.5,1.5,ee(t)),v/8);a.push(HL(SP(t,u,.6,cTab(PB,u))))}R.push(a)}loft(R,col,{open:true,center:HL([CF,0,-6])})}/* 턱가리개 */
+     {const R=[];for(let v=0;v<=8;v++){const a=[];for(let k=0;k<=NT;k++){const t=cols(k),u=lerp(lerp(-2.2,1.2,ee(t)),vTop(t),v/8);a.push(HL(ROT(SP(t,u,1.3,cTab(PV,u)))))}R.push(a)}loft(R,col,{open:true,center:HL(ROT([CF,0,2]))})}}/* 면갑: 눈 높이 아래가 새 부리처럼 튀어나옴 */
+    TAG=3;{const sl=[];for(let k=0;k<=8;k++){const t=lerp(-.55,.55,k/8);sl.push(HL(ROT(SP(t,.9,1.4,cTab(PV,.9)))))}for(let i=0;i<sl.length-1;i++)tube(sl[i],sl[i+1],.42,.42,INKL,.9)}TAG=2;/* 눈 틈 */
+    const hi=hexMix(col,'#ffffff',.4);for(const sd of[-1,1]){const P_=[PIV[0],sd*(SR(1.5)[1]+1.6),PIV[2]];ellip(v=>HL(vadd(v,P_)),1.1,.5,1.1,0,0,hi)}HLOC=h0;TAG=t0};/* 회전축 리벳 */
+   return{win,draw}};
   const kitParts=()=>{const K_=kit,C=K_.colors||{},main=C.main||st,trim=C.trim||tr,acc=C.accent||p.plume||p.flap||'#8a1c1c',hi=hexMix(main,'#ffffff',.45),w=K_.width||1,h=K_.height||1,flat=K_.dome==='flat',open=['open','nasal','cheek'].includes(K_.face)||(['visor','mask'].includes(K_.face)&&K_.visor==='up');
    const G={Rf:12*w,Rr:10.8*w,Ru:(K_.dome==='tall'?15:12.5)*h,cf:-1,cu:K_.dome==='tall'?1:0},fmax=K_.face==='mask'?9.4*w:1e9,cb=K_.brim&&K_.brim!=='none'?4.5:1.5,S0=open?{Rf:G.Rf*.94,Rr:G.Rr*.94,Ru:G.Ru*.9,cf:-1,cu:cb}:G;
    const top=flat?S0.cu+13*h-(open?cb:0)*.4:S0.cu+S0.Ru,apex=K_.dome==='pointed'?top+6*h:K_.dome==='onion'?top+3.5*h:top,base=open?cb:-12,MS_=MODE==='mesh',N=24;
@@ -297,6 +313,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    const xA=(r,u)=>flat?Math.sqrt(Math.max(0,1-(r/S0.Rr)**2)):Math.sqrt(Math.max(0,1-(r/S0.Rr)**2-((u-S0.cu)/S0.Ru)**2)),SP=(r,u,d=0)=>HL([Math.min(S0.cf+xA(r,u)*S0.Rf,fmax)+d,r,u]);
    const crestK=K_.crest||'none';if(crestK==='horns')decoIn(top-6);
    if(open){face();hairCapless()}
+   const CLS=K_.face==='close',CVp=CLS?closeVis(S0.cf,S0.Rf,S0.Rr,u=>[Math.max(S0.Rf*kU(u),9.8*w),Math.max(S0.Rr*kU(u),9.4*w)],K_.visor==='up',main):null;if(CLS&&K_.visor==='up')face(true,true);/* 클로즈 얼굴: 클로즈헬름의 면갑·턱가리개를 이 몸체에 건다. 면갑을 올리면 얼굴이 보인다 */
    // 목가리개(아벤테일): 위 고리 → 아래로 퍼지는 고리. 얼굴이 트였으면 앞을 비운다. 사슬은 회갈색, 판이면 겹판 줄 2개
    const nk=K_.neck||'none';if(nk!=='none'){const bot=nk==='long'||nk==='mail'?-17:-13.5,spread=nk==='flared'?4.5:nk==='mail'?2.5:1.2,u0=open?cb-1:-7,col=nk==='mail'?hexMix(main,'#8d877c',.35):main;
     if(MS_){const ring2=(u,k)=>{const a=[];for(let i=0;i<=N;i++){const t=open?lerp(.35*Math.PI,1.65*Math.PI,i/N):i/N*6.2832;a.push(HL([Math.cos(t)*(G.Rf-1+spread*k)-1.5,Math.sin(t)*(G.Rr-.4+spread*k),u]))}return open?a:a.slice(0,N)};
@@ -305,11 +322,11 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    // 챙
    const br=K_.brim||'none';if(br!=='none'&&MS_){const g=br==='wide'?3.6:br==='down'?3:1.8,lo=br==='down'?cb-3:cb-.7,rg=(R1,R2,u)=>{const a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HL([Math.cos(t)*R1-1,Math.sin(t)*R2,u]))}return a};loft([rg(S0.Rf+.3,S0.Rr+.3,cb+.4),rg(S0.Rf+g,S0.Rr+g,lo),rg(S0.Rf+g-.3,S0.Rr+g-.3,lo-.5),rg(S0.Rf+.3,S0.Rr+.3,cb-.4)],main,{center:HL([-1,0,cb])})}
    // 몸체: 위도 고리(평평한 통이면 원통), 닫힌 얼굴이면 아래 목둘레로 좁아짐, 뾰족·양파형은 꼭짓점
-   if(MS_){const R=[];if(flat){for(let j=0;j<=6;j++){const u=lerp(base,top,j/6),sc=j===6?.88:1,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HL([Math.min(S0.cf+Math.cos(t)*S0.Rf*sc,fmax),Math.sin(t)*S0.Rr*sc,u]))}R.push(a)}}
-    else{if(!open){const a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HL([Math.min(Math.cos(t)*9.8*w-1.5,fmax),Math.sin(t)*9.4*w,-12]))}R.push(a)}for(let la=open?0:-4;la<=5;la++){const pp=la/6*Math.PI/2,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HL([Math.min(S0.cf+Math.cos(pp)*Math.cos(t)*S0.Rf,fmax),Math.cos(pp)*Math.sin(t)*S0.Rr,S0.cu+Math.sin(pp)*S0.Ru]))}R.push(a)}
-     if(apex>top+.1){const k=.35,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HL([S0.cf+Math.cos(t)*S0.Rf*.25*k,Math.sin(t)*S0.Rr*.25*k,lerp(top,apex,.75)]))}R.push(a)}
-     const tp=apex>top+.1?apex:top,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HL([S0.cf+Math.cos(t)*.05,Math.sin(t)*.05,tp]))}R.push(a)}
-    loft(R,main,{center:HL([S0.cf,0,(base+top)/2]),capB:flat&&!open,capT:flat})}
+   if(MS_){const R=[],HLb=v=>{const q=HL(v);q._l=v;return q};/* _l: 클로즈 얼굴의 앞쪽 비우기 판정용 머리 좌표 */if(flat){for(let j=0;j<=6;j++){const u=lerp(base,top,j/6),sc=j===6?.88:1,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HLb([Math.min(S0.cf+Math.cos(t)*S0.Rf*sc,fmax),Math.sin(t)*S0.Rr*sc,u]))}R.push(a)}}
+    else{if(!open){const a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HLb([Math.min(Math.cos(t)*9.8*w-1.5,fmax),Math.sin(t)*9.4*w,-12]))}R.push(a)}for(let la=open?0:-4;la<=5;la++){const pp=la/6*Math.PI/2,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HLb([Math.min(S0.cf+Math.cos(pp)*Math.cos(t)*S0.Rf,fmax),Math.cos(pp)*Math.sin(t)*S0.Rr,S0.cu+Math.sin(pp)*S0.Ru]))}R.push(a)}
+     if(apex>top+.1){const k=.35,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HLb([S0.cf+Math.cos(t)*S0.Rf*.25*k,Math.sin(t)*S0.Rr*.25*k,lerp(top,apex,.75)]))}R.push(a)}
+     const tp=apex>top+.1?apex:top,a=[];for(let i=0;i<N;i++){const t=i/N*6.2832;a.push(HLb([S0.cf+Math.cos(t)*.05,Math.sin(t)*.05,tp]))}R.push(a)}
+    loft(R,main,{center:HL([S0.cf,0,(base+top)/2]),capB:flat&&!open,capT:flat,skip:CLS?(j,i,i2)=>CVp.win(R[j][i]._l,R[j][i2]._l,R[j+1][i]._l,R[j+1][i2]._l):null})}if(CLS)CVp.draw();/* 뼈를 등록하는 눈 틈·리벳이 있어 두 모드 모두 부른다 */
    if(K_.dome==='onion')ellip(v=>HL(vadd(v,[S0.cf,0,apex+1.6])),1.5,1.5,1.5,0,0,trim);
    // 띠(trim)·트인 얼굴 테두리·리벳·세로 띠
    const nb=Math.max(0,Math.min(3,K_.bands|0)),bandAt=u=>{if(MS_)loft([ringAt(u-.45,.18),ringAt(u+.45,.18)],trim,{center:HL([S0.cf,0,u])})};
@@ -334,23 +351,15 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(F==='kettle'){deco(14);face();ellip(HL,10.6,9.8,9,-1,5,HC,0,Math.PI/2,{capB:true});loft([neckRing(14,13.4,-1,4.2).map(HL),neckRing(13.6,13,-1,5).map(HL)],HC,{capB:true,capT:true});return}
   if(F==='joguan'){/* 조관: 빵모 1단 모양의 검은 관(찰갑 무늬 없음). 원래 사발 + 사발 밑동에서 위로 벌어지는 속 빈 챙 벽. 귀 보임 */const BU=3,BK=kit&&kit.colors&&kit.colors.main?kit.colors.main:'#1d1b19',H=5,U=BU+H;/* 색: 투구 '몸체' 색(정하지 않으면 검정) */face(true,false);hairCap(false);HLOC=null;TAG=2;ellip(HL,10.8,10,10.5,-1,BU,BK,0,Math.PI/2,{capB:true});loft([[11.2,10.7,BU],[11.9,11.4,BU+H*.45],[12.6,12.1,U],[13.2,12.7,U+.15],[13.4,12.9,U+.5],[13.1,12.6,U+.8],[12.5,12,U+.55],[12.1,11.6,U+.1],[11.5,11,BU+H*.55],[10.9,10.1,BU+.2]].map(([f,r,u])=>neckRing(f,r,-1,u).map(HL)),BK,{});deco(BU+10.5);/* 꼭대기 장식(볏·깃털·뿔·없음): 투구 칸의 '꼭대기 장식' 그대로 */TAG=2;HLOC=null;return}
   if(F==='close'){/* 클로즈헬름: 볏 달린 사발 + 옆 회전축 하나에 함께 걸린 뾰족한 면갑(위)과 턱가리개(아래) + 목 겹판 3단. 면갑 올림이면 면갑만 축을 중심으로 젖혀 얼굴이 보인다 */
-   HLOC=null;TAG=2;const MS_=MODE==='mesh',CF=-1.5,RF=11.4,RR=10.4,RU=12,TV=.6*Math.PI,cr_=kit&&kit.crest||'ridge',hi=hexMix(HC,'#ffffff',.4);if(up)face(true,true);
-   const tab=(T_,u)=>{if(u>=T_[0][0])return T_[0][1];for(let i=0;i<T_.length-1;i++){const[a0,v0]=T_[i],[a1,v1]=T_[i+1];if(u<=a0&&u>=a1)return lerp(v0,v1,(a0-u)/(a0-a1))}return T_[T_.length-1][1]};
-   const SR=u=>{if(u>=-5.75){const k=Math.sqrt(Math.max(0,1-(u/RU)**2));return[RF*k,RR*k]}return[tab([[-5.75,10],[-10,9.3],[-13.5,9.7]],u),tab([[-5.75,9.12],[-10,8.8],[-13.5,9.3]],u)]};/* 사발 반지름(앞, 옆): 위는 타원체, 아래는 목으로 좁아졌다 다시 벌어짐 */
-   const SP=(t,u,g,pr)=>{const[a,b]=SR(u);return[CF+(a+g)*Math.cos(t)+pr*Math.max(0,1-Math.abs(t)/1.25)**2,(b+g)*Math.sin(t),u]},ee=t=>(Math.abs(t)/TV)**2;/* SP: 사발 겉면에서 g만큼 띄우고 앞 가운데를 pr만큼 뾰족하게 */
-   const vTop=t=>lerp(7.5,2.6,ee(t)),PIV=[CF+(SR(1.5)[0]+1.3)*Math.cos(TV),0,1.5],th=up?1:0,ROT=q=>{if(!th)return q;const df=q[0]-PIV[0],du=q[2]-PIV[2],c=Math.cos(th),s_=Math.sin(th);return[PIV[0]+df*c-du*s_,q[1],PIV[2]+df*s_+du*c]};/* 면갑 올림: 옆 회전축(PIV)을 중심으로 앞을 위로 젖힌다 */
+   HLOC=null;TAG=2;const MS_=MODE==='mesh',CF=-1.5,RF=11.4,RR=10.4,RU=12,cr_=kit&&kit.crest||'ridge';if(up)face(true,true);
+   const SR=u=>{if(u>=-5.75){const k=Math.sqrt(Math.max(0,1-(u/RU)**2));return[RF*k,RR*k]}return[cTab([[-5.75,10],[-10,9.3],[-13.5,9.7]],u),cTab([[-5.75,9.12],[-10,8.8],[-13.5,9.3]],u)]};/* 사발 반지름(앞, 옆): 위는 타원체, 아래는 목으로 좁아졌다 다시 벌어짐 */
+   const CV=closeVis(CF,RF,RR,SR,up,HC);
    if(MS_){const n=32,LR=[],LAS=[];for(let j=0;j<=12;j++)LAS.push(lerp(-.5,Math.PI/2*.97,j/12));const US=[-13.5,-10,...LAS.map(la=>RU*Math.sin(la))];
-    for(const u of US){const a=[];for(let i=0;i<n;i++){const t=i/n*6.2832;a.push(SP(t,u,0,0))}LR.push(a)}LR.push(Array.from({length:n},(_,i)=>[CF+Math.cos(i/n*6.2832)*.2,Math.sin(i/n*6.2832)*.2,RU]));
-    const win=(...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length),tt=Math.atan2(c[1]/RR,(c[0]-CF)/RF);return Math.abs(tt)<TV*.9&&c[2]<vTop(tt)-1.2};/* 면갑·턱가리개가 덮는 앞쪽은 비운다(면갑을 올리면 얼굴이 보임) */
-    loft(LR.map(r=>r.map(HL)),HC,{center:HL([CF,0,0]),skip:(j,i,i2)=>win(LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});
-    const NT=24,cols=k=>lerp(-TV,TV,k/NT);
-    {const PB=[[1.5,7],[-1.5,7],[-4.5,6.8],[-8,4.2],[-11,1.6],[-13.5,.6]],R=[];for(let v=0;v<=8;v++){const a=[];for(let k=0;k<=NT;k++){const t=cols(k),u=lerp(-13.5,lerp(-1.5,1.5,ee(t)),v/8);a.push(HL(SP(t,u,.6,tab(PB,u))))}R.push(a)}loft(R,HC,{open:true,center:HL([CF,0,-6])})}/* 턱가리개: 목에서 코 밑까지, 앞은 뾰족한 능선 */
-    {const PV=[[7.5,1],[3.5,4.6],[.8,8],[-2.2,8.2]],R=[];for(let v=0;v<=8;v++){const a=[];for(let k=0;k<=NT;k++){const t=cols(k),u=lerp(lerp(-2.2,1.2,ee(t)),vTop(t),v/8);a.push(HL(ROT(SP(t,u,1.3,tab(PV,u)))))}R.push(a)}loft(R,HC,{open:true,center:HL(ROT([CF,0,2]))})}/* 면갑: 이마에서 턱가리개 윗단을 덮는 데까지, 눈 높이 아래가 새 부리처럼 튀어나옴 */
+    for(const u of US){const a=[];for(let i=0;i<n;i++){const t=i/n*6.2832,[ra,rb]=SR(u);a.push([CF+ra*Math.cos(t),rb*Math.sin(t),u])}LR.push(a)}LR.push(Array.from({length:n},(_,i)=>[CF+Math.cos(i/n*6.2832)*.2,Math.sin(i/n*6.2832)*.2,RU]));
+    loft(LR.map(r=>r.map(HL)),HC,{center:HL([CF,0,0]),skip:(j,i,i2)=>CV.win(LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});/* 면갑·턱가리개가 덮는 앞쪽은 비운다(면갑을 올리면 얼굴이 보임) */
     {const cs=cr_==='ridge'?4.6:2.4,R=[];for(let q=0;q<=12;q++){const ph=.45+q/12*(Math.PI-1),f=CF+Math.cos(ph)*RF*.98,u=Math.sin(ph)*RU*.98,u2=u+cs*Math.sin(q/12*Math.PI)**.6+.3;R.push([HL([f,-.45,u-.5]),HL([f,-.45,u2]),HL([f,.45,u2]),HL([f,.45,u-.5])])}loft(R,HC,{capB:true,capT:true,center:HL([CF,0,RU])})}/* 볏: 사발 가운데 앞뒤로 */
     for(let k=0;k<3;k++){const u_=-12.4-1.75*k,a=9.9+1.05*k,b=9.5+1.05*k;loft([neckRing(a,b,CF,u_),neckRing(a+.9,b+.9,CF,u_-2.1),neckRing(a+.4,b+.4,CF,u_-2.3)].map(r=>r.map(HL)),HC,{center:HL([CF,0,u_-1])})}}/* 목 겹판 3단: 아래로 한 단씩 벌어짐 */
-   TAG=3;{const sl=[];for(let k=0;k<=8;k++){const t=lerp(-.55,.55,k/8);sl.push(HL(ROT(SP(t,.9,1.4,tab([[7.5,1],[3.5,4.6],[.8,8],[-2.2,8.2]],.9)))))}for(let i=0;i<sl.length-1;i++)tube(sl[i],sl[i+1],.42,.42,INKL,.9)}/* 눈 틈 */
-   for(let k=0;k<3;k++)for(const r of[-.7,.7]){const u_=-12.4-1.75*k-1.1,a=9.9+1.05*k+.6,q=HL([CF+a+.1,r,u_]);tube(q,vadd(q,vmul(K.HR([1,0,0]),.15*hs)),.36,.36,INKL,.9)}TAG=2;/* 목 겹판 리벳 */
-   for(const sd of[-1,1]){const P_=[PIV[0],sd*(SR(1.5)[1]+1.6),PIV[2]];ellip(v=>HL(vadd(v,P_)),1.1,.5,1.1,0,0,hi)}/* 회전축 리벳 */
+   for(let k=0;k<3;k++)for(const r of[-.7,.7]){const u_=-12.4-1.75*k-1.1,a=9.9+1.05*k+.6,q=HL([CF+a+.1,r,u_]);tube(q,vadd(q,vmul(K.HR([1,0,0]),.15*hs)),.36,.36,INKL,.9)}TAG=2;/* 목 겹판 리벳 */CV.draw();
    if(cr_==='plume'||cr_==='horns')deco(RU+(cr_==='plume'?2.5:-2));HLOC=null;TAG=2;return}
   if(F==='jin'||F==='jin2'){const BU=3,BM=up&&F==='jin'&&dshape()>0;/* BM: 빵모·강시모(투구는 드림 내림 때 모델의 원래 사발 그대로, 드림만 말아 올림. 귀를 가리는 자락 없음) */ellip(HL,10.8,10,10.5,-1,BU,HC,0,Math.PI/2,{capB:true});
    if(!up){face(true,true);// 드림 내림: 눈구멍을 실제로 뚫고, 안의 진짜 얼굴(눈 모양·눈썹·안대 설정 그대로)이 보이게
@@ -421,7 +430,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    if(!up){// 눈썹판(금색) + 드림 앞 눈 틈(피부색과 눈)
     if(KM>0)for(const sd of[-1,1]){c.fillStyle=TC;c.beginPath();for(let k=0;k<=6;k++){const r=sd*(1.2+k*1.05),z=3.9+(.2+Math.sin(k/6*Math.PI)*1.6+(6-k)*.12+.9)*Math.min(KM,2);k?c.lineTo(X(r,11),Y(z)):c.moveTo(X(r,11),Y(z))}for(let k=6;k>=0;k--){const r=sd*(1.2+k*1.05);c.lineTo(X(r,11),Y(3.9))}c.closePath();c.fill();c.strokeStyle=INK;c.lineWidth=.2*U;c.stroke()}
     /* 드림 눈구멍은 이제 실제로 뚫고 안의 얼굴을 보여 준다(그림에는 그리지 않음) */}}
-  else if(F==='parts'){const op=['open','nasal','cheek'].includes(kit.face)||(['visor','mask'].includes(kit.face)&&kit.visor==='up'),Rw=12*(kit.width||1);// 부품 조립 투구: 2D faceParts와 같은 눈 틈·숨구멍
+  else if(F==='parts'){const op=['open','nasal','cheek','close'].includes(kit.face)||(['visor','mask'].includes(kit.face)&&kit.visor==='up'),Rw=12*(kit.width||1);// 부품 조립 투구: 2D faceParts와 같은 눈 틈·숨구멍
    if(!op){KM=EK;const sl=kit.slit||'none';if(sl==='single'||sl==='cross')band(-7.5,7.5,2.5,1.35,INK,Rw);if(sl==='double'){band(-7.5,7.5,3.4,1,INK,Rw);band(-7.5,7.5,1.4,1,INK,Rw)}if(sl==='cross')vline(0,2.5,-7.5,1.2,INK,Rw);if(sl==='eyes'){band(-5.8,-1.4,2.6,1.25,INK,Rw);band(1.4,5.8,2.6,1.25,INK,Rw)}
     KM=1;const bb=kit.breaths||'none';for(const sd of[-1,1]){if(bb==='holes'){for(let r=3;r<=7.5;r+=1.5)for(let u=-3.5;u>=-9.6;u-=2)dot(sd*r,u,.42,INK,Rw)}else if(bb==='slots'||(bb==='oneside'&&sd===1)){for(let r=3;r<=7.2;r+=1.4)vline(sd*r,-3,-8,.55,INK,Rw)}}KM=AW}}
   else if(F==='peak'||F==='peakup'){rivRow(-13,TC,.45,.4);if(!up){slit(5,15);breaths([-2,-4.5,-7],15);ridge(10,-12,15)}pivot(5.5)}
