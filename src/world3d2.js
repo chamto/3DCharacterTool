@@ -24,16 +24,17 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  void main(){vh=hl;vec3 P=p,N=n;if(SKN>.5&&bw.x>-.5){vec4 a0=rw(bw.x,0.),a1=rw(bw.x,1.),a2=rw(bw.x,2.);P=xm(a0,a1,a2,p,1.);N=xm(a0,a1,a2,n,0.);if(bw.z>0.){vec4 b0=rw(bw.y,0.),b1=rw(bw.y,1.),b2=rw(bw.y,2.);P+=bw.z*(xm(b0,b1,b2,pb,1.)-xm(a0,a1,a2,pb,1.));N=mix(N,xm(b0,b1,b2,n,0.),bw.z);}}// 자락: p=(1-w)pa+w·pb 이므로 A(p)+w(B(pb)-A(pb)) = (1-w)A(pa)+w·B(pb)
   vec3 q=P+normalize(N)*ow;vn=N;vrn=n;vid=id+ins*PIDN;vt=floor(c.r/2.);vc=vec3(c.r-2.*vt,c.g,c.b);vw=p;gl_Position=V*vec4(q,1.);}`;// vw: 기본자세 위치(무늬가 몸에 붙도록)
  const FS=`precision highp float;varying vec3 vn;varying vec3 vrn;varying vec3 vc;varying vec3 vw;varying float vt;varying float vid;varying vec4 vh;uniform sampler2D HT;uniform sampler2D ST;uniform sampler2D MC;uniform float SM;uniform vec3 SR;uniform vec3 SU;uniform vec3 PST;uniform vec3 PSH;uniform vec3 PHI;uniform float BRU;uniform sampler2D LT;uniform sampler2D FT;uniform vec3 L;uniform float flat_;uniform vec3 ink;uniform vec3 B;uniform sampler2D AT;uniform vec2 ATs;
- void main(){if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5);gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,1.,1.);return;}if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
+ vec2 atpx(out float on){float cd=floor(vh.w+.5)-10.,kd=mod(cd,3.),cl=floor(cd/3.);vec2 og=vec2(mod(cl,8.),floor(cl/8.))*256.,ts=vec2(256.),uv=vec2(0.);on=1.;
+   if(kd<.5){/* 통: vh=(둘레 cos, sin, 축 위치 0~1) */uv=vec2(atan(vh.y,vh.x)/6.2832+.5,vh.z);}
+   else if(kd<1.5){/* 몸통: vh=(좌우 -1~1, 높이 0~1, 앞뒤). 앞 그림은 첫 칸, 뒤 그림은 옆 칸 */ts.y=512.;uv=vec2(vh.x*.5+.5,vh.y);if(vh.z<0.)og.x+=256.;}
+   else{/* 구: vh=리벳 방향을 x축으로 한 좌표 → 앞 반구를 (y,z)로 눌러 편 그림 */vec3 n=normalize(vh.xyz);uv=n.yz*.5+.5;on=step(0.,n.x);}
+   return og+clamp(uv,.5/ts,1.-.5/ts)*ts;}
+ void main(){if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5),bd=0.;if(vh.w>9.5){float on_;vec2 px=floor(atpx(on_))+.5;bd=floor(texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs).b*255.+.5)*on_;}gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,(128.+bd)/255.,1.);return;}/* 번호 그림: 파랑 = 128 + 그림판 구역 번호(겹판 줄로 나뉜 띠). 겹판 줄을 경계선으로 그리게 한다 */if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
   vec3 base=vc;float txa=0.;if(vh.w>.5&&vh.w<1.5){float az=atan(vh.y,vh.x+1.);vec4 tx=texture2D(HT,vec2(.5+az/6.2832,(20.-vh.z)/34.));base=mix(base,tx.rgb,tx.a);txa=tx.a;}// 투구 상세 텍스처: 머리 국소 좌표로 방위각·높이를 구해 입힌다
   // 2D처럼 팔레트 그늘색·밝은색을 쓴다(판금은 모델 팔레트 값, 나머지는 바탕색에서 2D와 같은 비율로 만든다)
   /* 갑옷줄·리벳·테두리·띠·버클·멜빵·가슴 능선: 폴리곤도 수식도 아닌, 미리 구워 둔 그림판(AT)에서 읽는다. 꼬리표 w = 10 + 종류(0 통,1 몸통,2 구) + 3·칸 번호. dcK=먹선, dcB=바탕색 덮기(명암 받음), dcR=가슴 능선 */
   vec4 dcB=vec4(0.);float dcK=0.,dcR=0.;
-  if(vh.w>9.5){float cd=floor(vh.w+.5)-10.,kd=mod(cd,3.),cl=floor(cd/3.);vec2 og=vec2(mod(cl,8.),floor(cl/8.))*256.,ts=vec2(256.),uv=vec2(0.);float on=1.;
-   if(kd<.5){/* 통: vh=(둘레 cos, sin, 축 위치 0~1) */uv=vec2(atan(vh.y,vh.x)/6.2832+.5,vh.z);}
-   else if(kd<1.5){/* 몸통: vh=(좌우 -1~1, 높이 0~1, 앞뒤). 앞 그림은 첫 칸, 뒤 그림은 옆 칸 */ts.y=512.;uv=vec2(vh.x*.5+.5,vh.y);if(vh.z<0.)og.x+=256.;}
-   else{/* 구: vh=리벳 방향을 x축으로 한 좌표 → 앞 반구를 (y,z)로 눌러 편 그림 */vec3 n=normalize(vh.xyz);uv=n.yz*.5+.5;on=step(0.,n.x);}
-   vec2 px=og+clamp(uv,.5/ts,1.-.5/ts)*ts;vec4 A=texture2D(AT,px/ATs),Bp=texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs);/* 윗절반 = 바탕색(알파 곱한 RGB, A), 아랫절반 = (R 먹선, G 가슴 능선) */
+  if(vh.w>9.5){float on;vec2 px=atpx(on);vec4 A=texture2D(AT,px/ATs),Bp=texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs);/* 윗절반 = 바탕색(알파 곱한 RGB, A), 아랫절반 = (R 먹선, G 가슴 능선) */
    dcB=vec4(A.rgb/max(A.a,.004),smoothstep(.3,.7,A.a)*on);dcK=smoothstep(.3,.7,Bp.r)*on;dcR=Bp.g*on;}
   base=mix(base,dcB.rgb,dcB.a);
   bool isSt=distance(vc,PST)<.03&&dcB.a<.5;vec3 rt=base/max(vc,vec3(.01));
@@ -60,7 +61,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  const EVS=`attribute vec2 q;varying vec2 uv;void main(){uv=q*.5+.5;gl_Position=vec4(q,0.,1.);}`;
  const EFS=`precision highp float;varying vec2 uv;uniform sampler2D T;uniform vec2 px;uniform vec3 ink;uniform float wo;uniform float wb;uniform float BRU;uniform float BTR;
  float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}
- float id(vec2 o){vec4 c=texture2D(T,uv+o*px);return c.b<.5?-1.:floor(c.r*255.+.5)+floor(c.g*255.+.5)*256.;}
+ float id(vec2 o){vec4 c=texture2D(T,uv+o*px);return c.b<.4?-1.:floor(c.r*255.+.5)+floor(c.g*255.+.5)*256.+floor(c.b*255.-127.5)*65536.;}/* 파랑: 그림판 구역(겹판 줄 사이 띠) */
  // 매끄럽게: 둘레 8방향(반지름 1, 0.5 두 겹)을 보고 번호가 다른 비율만큼 진하게(가장자리 계단 완화)
  // 외곽선(배경↔몸, 굵기 wo)과 경계선(부품↔부품, 굵기 wb)을 따로 본다
  float hit(float c,float d,float bg){if(abs(d-c)<.5||max(c,d)<-.5)return 0.;float isBg=(c<-.5||d<-.5)?1.:0.;return bg>.5?isBg:1.-isBg;}
@@ -190,19 +191,19 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  function atPlan(){const used=new Set(),cells=[];let rows=1;for(let r=0;r<DEC.length/32;r++){const k=DEC[r*32]===1?2:1;let c=-1;for(let y=0;c<0;y++)for(let x=0;x+k<=8&&c<0;x++){let ok=true;for(let j=0;j<k&&ok;j++)for(let i=0;i<k;i++)if(used.has((y+j)*8+x+i)){ok=false;break}if(ok){c=y*8+x;for(let j=0;j<k;j++)for(let i=0;i<k;i++)used.add((y+j)*8+x+i);rows=Math.max(rows,y+k)}}cells.push(c)}return{cells,rows}}
  const smS=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)},stp=(e,x)=>x>=e?1:0;
  /* 타일 한 장 굽기: ev(u,v,o)가 칸 안 위치(0~1)마다 o=[R,G,B,바탕알파,먹선,능선]을 채운다. 한 칸을 2×2로 잘게 봐서 가장자리를 부드럽게 한다 */
- function atFill(w,h,ev){const A=new Uint8Array(w*h*4),B=new Uint8Array(w*h*4),o=[0,0,0,0,0,0],SS=2,s2=1/(SS*SS);for(let j=0;j<h;j++)for(let i=0;i<w;i++){let r=0,g=0,b=0,a=0,k=0,rg=0;for(let sy=0;sy<SS;sy++)for(let sx=0;sx<SS;sx++){ev((i+(sx+.5)/SS)/w,(j+(sy+.5)/SS)/h,o);a+=o[3];r+=o[0]*o[3];g+=o[1]*o[3];b+=o[2]*o[3];k+=o[4];rg+=o[5]}const q=(j*w+i)*4;A[q]=Math.round(r*s2*255);A[q+1]=Math.round(g*s2*255);A[q+2]=Math.round(b*s2*255);A[q+3]=Math.round(a*s2*255);B[q]=Math.round(k*s2*255);B[q+1]=Math.round(rg*s2*255);B[q+3]=255}return{w,h,A,B}}
+ function atFill(w,h,ev){const A=new Uint8Array(w*h*4),B=new Uint8Array(w*h*4),o=[0,0,0,0,0,0,0],SS=2,s2=1/(SS*SS);for(let j=0;j<h;j++)for(let i=0;i<w;i++){let r=0,g=0,b=0,a=0,k=0,rg=0;for(let sy=0;sy<SS;sy++)for(let sx=0;sx<SS;sx++){ev((i+(sx+.5)/SS)/w,(j+(sy+.5)/SS)/h,o);a+=o[3];r+=o[0]*o[3];g+=o[1]*o[3];b+=o[2]*o[3];k+=o[4];rg+=o[5]}const q=(j*w+i)*4;A[q]=Math.round(r*s2*255);A[q+1]=Math.round(g*s2*255);A[q+2]=Math.round(b*s2*255);A[q+3]=Math.round(a*s2*255);B[q]=Math.round(k*s2*255);B[q+1]=Math.round(rg*s2*255);B[q+2]=o[6];B[q+3]=255}/* B칸 파랑 = 구역 번호(겹판 줄로 나뉜 띠, 마지막 표본) */return{w,h,A,B}}
  /* 통: 가로 = 둘레각 -π~π, 세로 = (축 위치 s + 1) ÷ (길이 + 2). 겹판 줄(최대 5)·리벳(앞쪽 원)·윗단 테두리 */
- function bakeTube(r){const L=r[1],hw=r[2],rr=r[3],lm=[r[4],r[5],r[6],r[7],r[8]],ry=r[9],ra=r[10],rb=r[11],rw=r[12];return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{const th=(u-.5)*6.2832,s=v*(L+2*ATP)-ATP;let m=0;if(hw>=.001)for(const q of lm)if(hw>=Math.abs(s-q*L)){m=1;break}if(rr>=.001&&Math.abs(th)<=1.5708){const t=Math.min(1,Math.max(0,s/L)),rad=ra+(rb-ra)*t,dx=s-ry*L,dy=th*rad;if(dx*dx+dy*dy<=rr*rr)m=1}o[0]=r[13];o[1]=r[14];o[2]=r[15];o[3]=rw>=.001&&rw>=Math.abs(s-.02*L)?1:0;o[4]=m;o[5]=0})}]}
+ function bakeTube(r){const L=r[1],hw=r[2],rr=r[3],lm=[r[4],r[5],r[6],r[7],r[8]],ry=r[9],ra=r[10],rb=r[11],rw=r[12];return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{const th=(u-.5)*6.2832,s=v*(L+2*ATP)-ATP;let m=0,bd=0;if(hw>=.001)for(const q of lm)if(q>-5&&s>q*L)bd++;/* 겹판 줄은 그리지 않고 구역 번호로(경계선이 긋는다) */if(rr>=.001&&Math.abs(th)<=1.5708){const t=Math.min(1,Math.max(0,s/L)),rad=ra+(rb-ra)*t,dx=s-ry*L,dy=th*rad;if(dx*dx+dy*dy<=rr*rr)m=1}o[0]=r[13];o[1]=r[14];o[2]=r[15];o[3]=rw>=.001&&rw>=Math.abs(s-.02*L)?1:0;o[4]=m;o[5]=0;o[6]=bd})}]}
  /* 몸통: 가로 = 좌우 -Yh~Yh, 세로 = 높이 H0-7 ~ uS+2. 앞 그림(f>0)과 뒤 그림(f<0)을 따로 굽는다 */
  function bakeTorso(r){const H0=r[1],T0w=r[3],uA=H0-7,uB=r[2]+2,Yh=r[31],mk=front=>atFill(ATC,2*ATC,(a,b,o)=>{const y=(a*2-1)*Yh,u=uA+b*(uB-uA),ay=Math.abs(y),f=front?1:-1;
    const wl=Math.max(stp(Math.abs(u-H0-3),T0w),stp(Math.abs(u-H0+1),T0w),stp(Math.abs(u-H0+5),T0w))*stp(.001,T0w),nk=stp(r[4],u)*stp(u,r[5]),bl=stp(r[6],u)*stp(u,r[7]),bi=stp(r[6]+.2,u)*stp(u,r[7]-.2),bkx=stp(ay,r[24])*stp(r[25],u)*stp(u,r[26])*stp(0,f);
    const be=stp(r[6]-.2,u)*stp(u,r[7]+.2)*(1-bi)*(1-stp(ay,r[24]+.2)*stp(0,f)),bki=stp(ay,r[24]-.2)*stp(r[25]+.2,u)*stp(u,r[26]-.2),bke=stp(ay,r[24]+.2)*stp(r[25]-.2,u)*stp(u,r[26]+.2)*stp(0,f)*(1-bki);
    const k=(u-r[22])/(r[23]-r[22]),ys=r[20]+(r[21]-r[20])*k,sm=Math.max(stp(Math.abs(y-ys),r[19]),stp(Math.abs(y+ys),r[19]))*stp(0,k)*stp(k,1)*stp(f,0);
-   let c=8,al=nk;if(sm){c=16;al=1}if(bl){c=12;al=1}if(bkx){c=8;al=1}o[0]=r[c];o[1]=r[c+1];o[2]=r[c+2];o[3]=al;o[4]=Math.max(wl,be,bke);o[5]=stp(r[28],u)*stp(u,r[29])*stp(0,f)*(1-smS(.3,.45,ay))*r[30]});return[{x:0,y:0,...mk(true)},{x:ATC,y:0,...mk(false)}]}
+   o[6]=0;let c=8,al=nk;if(sm){c=16;al=1}if(bl){c=12;al=1}if(bkx){c=8;al=1}o[0]=r[c];o[1]=r[c+1];o[2]=r[c+2];o[3]=al;o[6]=(T0w>.001?stp(H0+3,u)+stp(H0-1,u)+stp(H0-5,u):0)+4*bl*(1-bkx)+8*bkx;o[4]=0;o[5]=stp(r[28],u)*stp(u,r[29])*stp(0,f)*(1-smS(.3,.45,ay))*r[30]});return[{x:0,y:0,...mk(true)},{x:ATC,y:0,...mk(false)}]}
  /* 구: 앞 반구를 (y,z)로 편 그림. 리벳 방향에서 각도 안쪽이 먹선 */
- function bakeBall(r){const c=r[1];return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{const y=u*2-1,z=v*2-1,q=y*y+z*z;o[0]=o[1]=o[2]=o[3]=o[5]=0;o[4]=q<=1&&Math.sqrt(1-q)>=c&&c>=.001?1:0})}]}
+ function bakeBall(r){const c=r[1];return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{const y=u*2-1,z=v*2-1,q=y*y+z*z;o[0]=o[1]=o[2]=o[3]=o[5]=o[6]=0;o[4]=q<=1&&Math.sqrt(1-q)>=c&&c>=.001?1:0})}]}
  /* 무늬(종류 3): 가로 = 무늬 한 칸(둘레각으로 반복, 0~1), 세로 = 표면 위→아래(0~1). r[1] 무늬(1 징 2 찰갑 3 비늘 4 쇠사슬 5 겹판), r[2] 세로 줄 수, r[3] 칸 가로÷줄 높이, r[4..6] 징 색, r[7] 선 굵기, r[8..9] 겹판 줄(세로 범위), r[10] 겹판 리벳 세로 위치 */
- function bakePattern(r){const T=r[1],NR=Math.max(1,r[2]),AS=r[3]||1,lw=r[7]||.06;return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{o[0]=o[1]=o[2]=o[3]=o[4]=o[5]=0;const hR=1/AS,Y=v*NR,row=Math.floor(Y),y=v*NR*hR;
+ function bakePattern(r){const T=r[1],NR=Math.max(1,r[2]),AS=r[3]||1,lw=r[7]||.06;return[{x:0,y:0,...atFill(ATC,ATC,(u,v,o)=>{o[0]=o[1]=o[2]=o[3]=o[4]=o[5]=o[6]=0;const hR=1/AS,Y=v*NR,row=Math.floor(Y),y=v*NR*hR;
    if(T===1){const off=(row%2)*.5,dx=u-.5-off-Math.round(u-.5-off),dy=(Y-row-.5)*hR,d=Math.hypot(dx,dy),R_=.24;if(d<R_){o[0]=r[4];o[1]=r[5];o[2]=r[6];o[3]=1;if(d>R_-lw*.8)o[4]=1}}/* 징: 칸마다 금빛 못머리(줄마다 반 칸 엇갈림) */
    else if(T===2){const fy=Y-row,off=(row%2)*.25,fx=(u+off)*2,dx=fx-Math.round(fx);if(fy<lw*AS*.9||Math.abs(dx)<lw)o[4]=1;const hx=((u+off)*2-Math.floor((u+off)*2))-.5;if(Math.hypot(hx*.5,(fy-.22)*hR)<.045)o[4]=1}/* 찰갑: 줄마다 작은 미늘 두 장, 줄 경계·미늘 사이 선, 미늘 위쪽 끈 구멍 */
    else if(T===3){const Rr=.56;let win=-1,wd=0;for(let rr=Math.floor(y/hR)-2;rr<=Math.floor(y/hR)+1;rr++){if(rr<-1)continue;const yc=rr*hR,xo=(((rr%2)+2)%2)*.5,dx=u-xo-Math.round(u-xo),dy=y-yc;if(dy>=-.02&&dx*dx+dy*dy<=Rr*Rr){win=rr;wd=Math.hypot(dx,dy);break}}if(win>=-1&&wd>Rr-lw)o[4]=1}/* 비늘(어린갑): 아래가 둥근 비늘, 위 줄이 아래 줄을 덮는다 */
@@ -400,8 +401,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    // 목가리개(아벤테일): 위 고리 → 아래로 퍼지는 고리. 얼굴이 트였으면 앞을 비운다. 사슬은 회갈색, 판이면 겹판 줄 2개
    const guard=(nk,lm,sm,op,u0,g0)=>{if(nk==='none')return;const bot_=nk==='long'||nk==='mail'?-17:-13.5,spread=(nk==='flared'?4.5:nk==='mail'?2.5:1.2)*sm,col=nk==='mail'?hexMix(main,'#8d877c',.35):main,bot=u0+(bot_-u0)*lm;/* 길이·퍼짐 배율 */
     if(MS_){const ring2=(u,k)=>{const a=[];for(let i=0;i<=N;i++){const t=op?lerp(.35*Math.PI,1.65*Math.PI,i/N):i/N*6.2832;a.push(HL([Math.cos(t)*(G.Rf-1+g0+spread*k)-1.5,Math.sin(t)*(G.Rr-.4+g0+spread*k),u]))}return op?a:a.slice(0,N)};
-     {const h0=HLOC;if(nk==='mail')HLOC={...HLOC,w:2};loft([ring2(bot,1),ring2((bot+u0)/2,.5),ring2(u0,0)],col,{open:op,center:HL([-1.5,0,(bot+u0)/2])});HLOC=h0}/* 사슬: 사슬 무늬 */
-     if(nk!=='mail'&&AW>0){TAG=3;for(const u of[bot+3.2,bot+6]){const k=(u-bot)/(u0-bot),rr_=[ring2(u-.2*AW,1-k),ring2(u+.2*AW,1-k)];loft(rr_.map(r_=>r_.map(q=>vadd(HL([-1.5,0,u]),vmul(vsub(q,HL([-1.5,0,u])),1.012)))),INKL,{open:op,samePid:true})}TAG=2}}};
+     {const h0=HLOC;if(nk==='mail')HLOC={...HLOC,w:2};const kq=u=>(u0-u)/(u0-bot),cen_={open:op,center:HL([-1.5,0,(bot+u0)/2])};
+      if(nk!=='mail'&&AW>0){const cu=[bot,bot+3.2,bot+6].filter(u=>u<u0-.5).concat([u0]);for(let i=0;i<cu.length-1;i++){const a=cu[i],b=cu[i+1],us=b-a>4?[a,(a+b)/2,b]:[a,b];loft(us.map(u=>ring2(u,kq(u))),col,cen_)}}/* 판: 겹판마다 부품 번호를 나눠 겹판 줄을 경계선으로(이웃 겹판은 같은 고리를 함께 쓴다) */
+      else loft([ring2(bot,1),ring2((bot+u0)/2,.5),ring2(u0,0)],col,cen_);HLOC=h0}/* 사슬: 사슬 무늬 */}};
    guard(K_.neck||'none',K_.nlen??1,K_.nspr??1,false,-7,0);/* 목드림: 서양 기사 목가리개(목을 한 바퀴 감쌈) */
    {const nk=K_.hdrim||'none',WR=(K_.hdwrap==='1'||K_.hdwrap===true)&&open,PT=K_.hdpat||'none';if(nk!=='none'&&MS_){/* 투구드림: 투구 밑단에서 늘어뜨림. 얼굴이 트였으면 앞을 비우고, 여밈(WR)이면 턱 아래에서 앞이 닫혀 턱을 감싼다. 문양(PT): 징·찰갑·비늘·쇠사슬 */
     const u0=open?cb-1:-5,g0=open?0:.7,bot_=nk==='long'||nk==='mail'?-17:-13.5,spread=(nk==='flared'?4.5:nk==='mail'?2.5:1.2)*(K_.hspr??1),bot=u0+(bot_-u0)*(K_.hlen??1),col=nk==='mail'&&PT==='none'?hexMix(main,'#8d877c',.35):main,NRW=6,M_=N+1,
