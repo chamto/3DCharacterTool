@@ -3,7 +3,7 @@
 import os
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC=os.path.join(ROOT,'src');OUT=os.path.join(ROOT,'dist')
-JS=['core.js','knight.js','mech.js','painter.js','helmimport.js','editor.js','world3d.js','world3d2.js']
+JS=['core.js','knight.js','mech.js','painter.js','helmimport.js','editor.js','world3d.js','world3d2.js','paint3d.js']
 rd=lambda n:open(os.path.join(SRC,n),encoding='utf8').read()
 js=''.join(rd(n) for n in JS)
 os.makedirs(OUT,exist_ok=True)

@@ -3,11 +3,11 @@
 ## 작업 원칙
 - 답변은 한국어로 하고, 화면 문구는 존댓말로 쓴다.
 - **질문에는 답만 하고 코드를 고치지 않는다.** 고치라는 요청이 있을 때만 작업한다.
-- **3D 월드2(`src/world3d2.js`)에만 적용한다.** 2D(`core.js`, `knight.js`, `mech.js`, `helmimport.js`)와 3D 월드(`world3d.js`)는 건드리지 않는다. 공통 적용 사항이 있어도 마찬가지다.
+- **3D 월드2(`src/world3d2.js`, `src/paint3d.js`)에만 적용한다.** 2D(`core.js`, `knight.js`, `mech.js`, `helmimport.js`)와 3D 월드(`world3d.js`)는 건드리지 않는다. 공통 적용 사항이 있어도 마찬가지다.
 
 ## 배포 규칙 (소스와 아티팩트는 항상 같이 간다)
 `src/`를 수정했으면 **같은 작업 안에서 종속된 아티팩트까지 적용한다.** 사용자가 따로 말하지 않아도 한다.
-1. `node --check src/world3d2.js`
+1. `node --check src/world3d2.js` (`src/paint3d.js`를 고쳤으면 그것도)
 2. `python3 tools/build.py` → `dist/model-workshop.html`, `dist/x.js` 생성
 3. `node --check dist/x.js`
 4. 화면 확인(Playwright, chrome `--use-gl=swiftshader`). 해당 변경이 눈에 보이는 경우에만 한다.
@@ -22,6 +22,7 @@
 - `src/shell_head.html`: 마크업·CSS (`<script>` 여는 태그까지)
 - `src/core.js`, `knight.js`, `mech.js`, `painter.js`, `helmimport.js`, `editor.js`, `world3d.js`: 2D·공통 (동결)
 - `src/world3d2.js`: 3D 월드2 (작업 대상)
+- `src/paint3d.js`: 3D 월드의 그림 탭 그리기(작업 대상). painter.js의 `paintModel`·붓 도구를 옮겨 와 3D 자료(화면·부위 조각·뼈대 안내값)만으로 그린다. 3D 월드일 때 `paintModel`이 이것으로 바뀐다. 동결 2D 파일의 코드가 3D에 필요하면 이렇게 3D 파일로 옮겨 쓴다.
 - 이어 붙이는 순서는 `tools/build.py`에 있다. v166 배포본에서 나눴고, 다시 빌드하면 배포본과 바이트 단위로 같다.
 - 작업 기록은 `docs/`에 있다.
 
