@@ -223,8 +223,9 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
  // ─ 뼈대(2D와 같은 식) ─
  function skel(m,pose,down){const bd=m.body||{},bT=bd.torso??1,LM=bd.limb??1,bL=bd.leg??1,bS=bd.shoulder??1,hs=bd.head??1,bN=bd.neck??1,legDrop=48-48*bL;
   const feet=pose.feet||KDEF.feet,crouch=pose.crouch??0,elb=pose.elb??0,nod=pose.nod??0,L=pose.lean+(down||0)*14,drop=(down||0)*30+crouch,H0=48*bL-drop,bend=u=>L*(u-H0)/60,T=u=>[bend(u),0,u],uS=H0+40;
-  const legs=[0,1].map(i=>{const side=i?1:-1,Hp=[0,side*9*bT,H0],F=[feet[i][0],feet[i][1],0],K=ik2(Hp,F,25.5*bL,25.5*bL,[1,side*.45,0]),toe=norm([1,side*.32,0]),A=vadd(F,[0,0,5]);return{side,Hp,K,F,A,toe}});
-  const hd=[pose.h[0]+L*(pose.h[2]-48)/60,pose.h[1],pose.h[2]-drop-legDrop],d=norm(pose.d),off=vsub(hd,vmul(d,10));
+  const legs=[0,1].map(i=>{const side=i?1:-1,Hp=[0,side*9*bT,H0],F=(()=>{const f=[feet[i][0],feet[i][1],0],dx=f[0]-Hp[0],dy=f[1]-Hp[1],dh=Math.hypot(dx,dy),mx=Math.sqrt(Math.max(0,(50.8*bL)**2-H0*H0));return dh>mx&&dh>1e-6?[Hp[0]+dx*mx/dh,Hp[1]+dy*mx/dh,0]:f})(),/* 발 고리를 다리 길이보다 멀리 끌어도 다리가 늘어나지 않게: 닿는 거리까지만 */K=ik2(Hp,F,25.5*bL,25.5*bL,[1,side*.45,0]),toe=norm([1,side*.32,0]),A=vadd(F,[0,0,5]);return{side,Hp,K,F,A,toe}});
+  const d=norm(pose.d);let hd=[pose.h[0]+L*(pose.h[2]-48)/60,pose.h[1],pose.h[2]-drop-legDrop],off=vsub(hd,vmul(d,10));
+  {const RCH=44.8,SH=[[bend(uS),-16*bS,uS],[bend(uS),16*bS,uS]],ex=(S,P)=>{const v=vsub(P,S),l=vlen(v);return l>RCH?vmul(v,(RCH-l)/l):[0,0,0]};for(let it=0;it<4;it++){const e1=ex(SH[1],hd);hd=vadd(hd,e1);off=vadd(off,e1);const e0=ex(SH[0],off);hd=vadd(hd,e0);off=vadd(off,e0)}}/* 손 고리를 팔 길이보다 멀리 끌어도 팔이 늘어나지 않게: 두 손(칼 쥔 간격 그대로)을 어깨에서 닿는 거리 안으로 함께 당긴다 */
   const arms=[0,1].map(i=>{const side=i?1:-1,S=[bend(uS),side*16*bS,uS],Hn=i?hd:off,E=ik2(S,Hn,23,22,[-.35,side*(.7+elb*.8),-.8]);return{side,S,E,Hn}});
   const nA=nod*.6,hyw=pose.hyaw??0,hrl=pose.hroll??0,head=vadd(T(uS+18*bN),[nod*5,0,-nod*3]),cP=Math.cos(nA),sP=Math.sin(nA),cY=Math.cos(hyw),sY=Math.sin(hyw),cR=Math.cos(hrl),sR=Math.sin(hrl);
   const HR=v=>{const[f,r,u]=v,r1=r*cR-u*sR,u1=r*sR+u*cR,f2=f*cP+u1*sP,u2=u1*cP-f*sP;return[f2*cY-r1*sY,f2*sY+r1*cY,u2]},HL=v=>vadd(head,HR(vmul(v,hs)));
