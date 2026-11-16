@@ -188,6 +188,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    else if(T===2){const fy=Y-row,off=(row%2)*.25,fx=(u+off)*2,dx=fx-Math.round(fx);if(fy<lw*AS*.9||Math.abs(dx)<lw)o[4]=1;const hx=((u+off)*2-Math.floor((u+off)*2))-.5;if(Math.hypot(hx*.5,(fy-.22)*hR)<.045)o[4]=1}/* 찰갑: 줄마다 작은 미늘 두 장, 줄 경계·미늘 사이 선, 미늘 위쪽 끈 구멍 */
    else if(T===3){const Rr=.56;let win=-1,wd=0;for(let rr=Math.floor(y/hR)-2;rr<=Math.floor(y/hR)+1;rr++){if(rr<-1)continue;const yc=rr*hR,xo=(((rr%2)+2)%2)*.5,dx=u-xo-Math.round(u-xo),dy=y-yc;if(dy>=-.02&&dx*dx+dy*dy<=Rr*Rr){win=rr;wd=Math.hypot(dx,dy);break}}if(win>=-1&&wd>Rr-lw)o[4]=1}/* 비늘(어린갑): 아래가 둥근 비늘, 위 줄이 아래 줄을 덮는다 */
    else if(T===4){const Rg=.3;for(let rr=row-1;rr<=row+1;rr++){const yc=(rr+.5)*hR,xo=(((rr%2)+2)%2)*.5,dx=u-xo-Math.round(u-xo),d=Math.hypot(dx,y-yc);if(Math.abs(d-Rg)<lw*.9){o[4]=1;break}}}/* 쇠사슬: 엇갈린 고리 */
+   else if(T===6){const fr=Y-row;if(fr>=r[8]&&fr<=r[9])o[4]=1;if(Math.hypot(u-.5,(fr-r[10])*hR)<.06)o[4]=1}/* 이어 붙인 겹판: 겹판마다 아랫단 줄 + 리벳 */
    else if(T===5){if(v>=r[8]&&v<=r[9])o[4]=1;const dx=u-.5,dy=(v-r[10])*hR*NR;if(Math.hypot(dx,dy)<.07)o[4]=1}})}]}/* 겹판: 아랫단 줄 + 리벳 */
  function atBake(){const pl=atPlan(),n=DEC.length/32;if(!n)return{W:1,TH:2,data:new Uint8Array(8)};const W=ATW,H=pl.rows*ATC,TH=2*H,data=new Uint8Array(W*TH*4);
   for(let r=0;r<n;r++){const row=DEC.slice(r*32,r*32+32),key=row.join(',');let ts=AT_TILES.get(key);if(!ts){ts=row[0]===1?bakeTorso(row):row[0]===0?bakeTube(row):row[0]===3?bakePattern(row):bakeBall(row);if(AT_TILES.size>60)AT_TILES.clear();AT_TILES.set(key,ts)}
@@ -292,7 +293,12 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
     else{/* 몸통 폴드런(참고 사진 그대로): 가로 겹판 9장이 어깨를 감싸며 위에서 아래로 층층이 쌓인다. 겹판은 몸통 단면을 따라 앞 가운데 쪽에서 어깨·팔 바깥을 돌아 등 가운데 쪽까지 이어지고, 위 겹판일수록 목 가까이(안쪽)까지 오며 아래로 갈수록 바깥으로 물러나 가슴에 V자 앞자락을 만든다. 위 겹판의 아랫단이 아래 겹판 윗단을 덮는다 */
      const NB=9,z0=uS+4.5,z1=uS-15,hb=(z0-z1)/NB,gb=m.coat?2.6:1.3,RWF=Math.abs(S[1])+5.5*psz,zt=uS-1,NA=48,
       sh=z=>z>zt?Math.sqrt(Math.max(.12,1-((z-zt)/6.5)**2)):1,PB=(z,a,g)=>{const lv_=K.lv(Math.min(z,uS+1)),s_=sh(z),Xr=lerp(lv_.df*.72,lv_.df,s_)+g,Yr=lerp(8.5*bT,RWF,s_)+g;return[lv_.fo+Xr*Math.cos(a),side*Yr*Math.sin(a),z]};
-     for(let k=0;k<NB;k++){const zc=z0-(k+.5)*hb,q=(k+.5)/NB,af=lerp(.1,.78,q*q),ab=lerp(.14,.85,q*q),zT=zc+hb*.62,zB=zc-hb*.5,gk=gb+.16*(NB-1-k),rows=[[zT,gk-.05],[zc,gk+.06],[zB,gk+.16],[zB,gk-.02]].map(([z,g],ri)=>{const r_=[];for(let i=0;i<=NA;i++){const a=lerp(af,Math.PI-ab,i/NA);r_.push(TAGH(PB(z,a,g),i/NA,ri))}return r_});const rw0=K.lv(Math.min(zc,uS+1)).rw;loft(rows,st,{open:true,center:[K.lv(zc).fo,side*4,zc],pid:lp,two:{pb:(j,i)=>rows[j][i],bb:SBn,t:()=>0,ti:(j,i)=>.9*clamp((Math.abs(rows[j][i][1])-rw0*.55)/(RWF-rw0*.55),0,1)*clamp((zc-(uS-16))/8,.35,1)}});if(lp==null)lp=PID}}
+     {/* 한 장의 면: 위(z0)에서 아래(z1)까지 줄을 이어 하나의 겹판 껍질로 만든다(겹판 사이가 갈라지지 않음). 겹판마다 아랫단이 살짝 들려 층이 보이고, 겹판 줄·리벳은 무늬 그림판(종류 3, 무늬 6)에서 읽는다. V자 앞자락은 줄마다 시작 각도를 바꿔 매끈한 사선이 된다 */
+      const RZ=[];for(let k=0;k<NB;k++)for(const f of[0,.45,.9])RZ.push([(k+f)/NB,f]);RZ.push([1,1]);const prw=decRow([3,6,NB,3.2,0,0,0,.06,.9,.985,.5]),rows=[];
+      for(const[q,f]of RZ){const z=lerp(z0,z1,q),qa=Math.min(q,.999),af=lerp(.1,.78,qa*qa),ab=lerp(.14,.85,qa*qa),g=gb+.7*(1-q)+.22*f,r_=[];for(let i=0;i<=NA;i++){const a=lerp(af,Math.PI-ab,i/NA),p_=PB(z,a,g);p_._h=[Math.cos(2*LREP*a),Math.sin(2*LREP*a),q];/* 리벳은 둘레각 기준(줄마다 같은 자리, 세로로 맞춤) */r_.push(p_)}rows.push(r_)}
+      {const r_=rows[rows.length-1].map((p_,i)=>{const z=z1,qa=.999,a=lerp(lerp(.1,.78,qa*qa),Math.PI-lerp(.14,.85,qa*qa),i/NA),w_=PB(z,a,gb+.02);w_._h=p_._h;return w_});rows.push(r_)}/* 아랫단 두께(안쪽으로 접힌 면) */
+      const h1=HLOC;HLOC={fn:p_=>p_._h?[p_._h[0],p_._h[1],p_._h[2],10+prw]:[0,0,0,0]};
+      loft(rows,st,{open:true,center:[K.lv(uS-6).fo,side*4,uS-6],two:{pb:(j,i)=>rows[j][i],bb:SBn,t:()=>0,ti:(j,i)=>{const p_=rows[j][i],rw0=K.lv(Math.min(p_[2],uS+1)).rw;return .9*clamp((Math.abs(p_[1])-rw0*.55)/(RWF-rw0*.55),0,1)*clamp((p_[2]-(uS-16))/8,.35,1)}}});HLOC=h1}}
     HLOC=hl0;/* 몸통 폴드런: 가슴·등 가운데 쪽은 몸통을, 어깨·팔 바깥 쪽은 어깨를 따라간다 */
     CB=cb0}}// 오트 피스: 어깨 안쪽에 세운 관판(목 옆 방패판)// 어깨판: 겹판 줄·리벳·윗단 테두리
   // 목·머리
