@@ -356,14 +356,14 @@ function paintModel(onProgress){
  // 허리 경계: 모델이 알려 준 허리 둘레를 3단계 붓으로 한 번 감는다
  if(HINTS.waist&&HINTS.waist.length>1){const W_=HINTS.waist,wd=clamp(Math.hypot(W_[W_.length-1][0]-W_[0][0],W_[W_.length-1][1]-W_[0][1])*.07,4*SZ,10*SZ);lineStroke(W_.map(q=>[q[0]+rr(-.6,.6),q[1]+rr(-.6,.6)]),wd)}
  begin('명암 · 근육 · 질감');
- // 첫 붓: 경계선 따라 그리기. 경계선 칸(2px 격자)을 따라 걸으며 이어진 선을 모아, 황토색 붓으로 한 획씩 긋는다(3단계 굵은 한 붓처럼 아래에 어두운 그림자)
+ // 첫 붓: 경계선 따라 그리기. 경계선 칸(2px 격자)을 따라 걸으며 이어진 선을 모아, 4단계 채우기와 같은 붓(굵은 한 붓 색 설정 LC, 부품 크기에 따른 굵기 ×0.8, 같은 그림자·색 흔들림)으로 한 획씩 긋는다
  if(BLM){const CG=2,cw=Math.ceil(N/CG),on=new Uint8Array(cw*cw),vis=new Uint8Array(cw*cw);for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(BLM[y*N+x])on[(y/CG|0)*cw+(x/CG|0)]=1;
   const ok=(x,y)=>x>=0&&y>=0&&x<cw&&y<cw&&on[y*cw+x]&&!vis[y*cw+x],mk=(x,y)=>{for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++){const xx=x+i,yy=y+j;if(xx>=0&&yy>=0&&xx<cw&&yy<cw)vis[yy*cw+xx]=1}};
   const walk=(x,y,a)=>{const out=[];for(let k=0;k<400;k++){let best=null;for(const da of[0,.26,-.26,.52,-.52,.79,-.79,1.05,-1.05])for(const d of[3,4]){const nx=Math.round(x+Math.cos(a+da)*d),ny=Math.round(y+Math.sin(a+da)*d);if(ok(nx,ny)){best=[nx,ny,a+da];break}}if(!best)break;const pa=a;[x,y]=best;a=Math.atan2(Math.sin(best[2]),Math.cos(best[2]));a=pa+Math.atan2(Math.sin(a-pa),Math.cos(a-pa))*.7;mk(x,y);out.push([x*CG+1,y*CG+1])}return out};
-  const lw=clamp(3.2*SZ,2.4,5.5),INKB=[[214,150,58],[236,184,92],[176,112,40]];
+  const PW=new Map();for(const g of pgeo)if(g.pid)PW.set(g.pid,clamp(Math.min(g.T,g.u1-g.u0)*.23,3.8*SZ,11*SZ));const wAtP=P=>{const ws=[];for(let i=0;i<P.length;i+=3){const v=IDat(P[i][0],P[i][1]),w=PW.get(v);if(w)ws.push(w)}ws.sort((a,b)=>a-b);return ws.length?ws[ws.length>>1]:5.5*SZ};/* 부품마다 4단계 붓 굵기(가운데 값) */
   for(let y=0;y<cw;y++)for(let x=0;x<cw;x++){if(!ok(x,y))continue;let a0=null;for(let t=0;t<12&&a0===null;t++){const a=t/12*6.2832;for(const d of[3,4])if(ok(Math.round(x+Math.cos(a)*d),Math.round(y+Math.sin(a)*d))){a0=a;break}}mk(x,y);if(a0===null)continue;
-   const f=walk(x,y,a0),b=walk(x,y,a0+Math.PI),P=[...b.reverse(),[x*CG+1,y*CG+1],...f];if(P.length<4)continue;const S=smooth(P.map(q=>[q[0]+rr(-.5,.5),q[1]+rr(-.5,.5)]),1),ww=lw*rr(.85,1.15);
-   push(()=>{const sh=INKB[2].map(v=>v*.55);ribbonPath(c,'round',S,ww*1.18,[sh,sh,sh],.45);ribbonPath(c,'round',S,ww,[INKB[0],INKB[1],INKB[0]].map(q=>q.map(v=>clamp(v*(1+rr(-.06,.06)),0,255))),.96)})}}
+   const f=walk(x,y,a0),b=walk(x,y,a0+Math.PI),P=[...b.reverse(),[x*CG+1,y*CG+1],...f];if(P.length<4)continue;const S=smooth(P.map(q=>[q[0]+rr(-.4,.4),q[1]+rr(-.4,.4)]),1),ww=wAtP(P)*.8;covered.push({S,w:ww});
+   push(()=>{const sh=LC[2].map(v=>v*.5);ribbonPath(c,'round',S,ww*1.15,[sh,sh,sh],.4);ribbonPath(c,'round',S,ww,[LC[0],LC[1],LC[0]].map(q=>q.map(v=>clamp(v*(1+rr(-.07,.05)),0,255))),.95)})}}
  // 방향 고르기: 가로로 길면 가로, 세로로 길면 세로, 그 사이면 그 방향 그대로
  const snapA=a=>{a=((a%Math.PI)+Math.PI)%Math.PI;if(a<.3||a>Math.PI-.3)return 0;if(Math.abs(a-Math.PI/2)<.3)return Math.PI/2;return a};
  const inPoly=(H,x,y)=>{let s=0;for(let k=0;k<H.length;k++){const a=H[k],b=H[(k+1)%H.length],cr=(b[0]-a[0])*(y-a[1])-(b[1]-a[1])*(x-a[0]);if(cr!==0){const sg=cr>0?1:-1;if(s===0)s=sg;else if(s!==sg)return false}}return true};
