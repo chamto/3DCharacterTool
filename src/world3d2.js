@@ -675,7 +675,9 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   lastStat={cpu:performance.now()-t0,bone:tbone,n:NI,verts:ME.cnt,nb:NB};return true}
  function show(on){const c=document.getElementById('gl3d2');if(c)c.hidden=!on;if(!on&&VIEW.sq<.2)VIEW.sq=.2;if(P3W!==on){P3W=on;patchPanel()}}/* 3D 월드2를 나가면 아래에서 보던 시점을 2D 범위로 되돌린다 */
 setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1안·2안·3안 제거, 조관 추가)는 2D에서도 처음부터 */
-return{render,show,init,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
+/* 자세를 3D 뼈대의 닿는 거리 안으로 맞춘 자세로 돌려준다(손·발 목표만 바꿈). 2D 계산(그림 탭 안내값·화면 고리)도 같은 팔다리 길이를 쓰게 한다 */
+ const clampPose=(m,pose,down)=>{const K=skel(m,pose,down||0),bd=m.body||{},bL=bd.leg??1,L=pose.lean+(down||0)*14,drop=(down||0)*30+(pose.crouch??0),legDrop=48-48*bL,h2=K.hd[2]+drop+legDrop,h=[K.hd[0]-L*(h2-48)/60,K.hd[1],h2],ft=K.legs.map(g=>[g.F[0],g.F[1]]),pf=pose.feet;let ch=Math.hypot(h[0]-pose.h[0],h[1]-pose.h[1],h[2]-pose.h[2])>1e-4;if(pf)for(let i=0;i<2;i++)if(Math.hypot(ft[i][0]-pf[i][0],ft[i][1]-pf[i][1])>1e-4)ch=true;return ch?{...pose,h,feet:pf?ft:pose.feet}:pose};
+ return{render,show,init,clampPose,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
 setTimeout(()=>{try{if(WORLD==='2d')setWorld('3d2')}catch(e){console.warn(e)}},0);
 /* 화면을 위아래로 쓸어 넘길 때 손가락이 지나간 슬라이더 값이 바뀌지 않게: 터치가 가로로 8px 넘게 움직여야 슬라이더를 움직인 것으로 본다(세로로 먼저 움직이면 스크롤, 값은 그대로) */
 (()=>{let TS=null;try{const st=document.createElement('style');st.textContent='input[type=range]{touch-action:pan-y}';document.head.appendChild(st)}catch(_){}
@@ -684,3 +686,4 @@ setTimeout(()=>{try{if(WORLD==='2d')setWorld('3d2')}catch(e){console.warn(e)}},0
  window.addEventListener('touchmove',e=>{if(!TS||TS.m)return;const t=e.touches[0],dx=Math.abs(t.clientX-TS.x),dy=Math.abs(t.clientY-TS.y);if(dy>8&&dy>=dx){TS.m=2;TS.r.value=TS.v}else if(dx>8){TS.m=1;TS.r.dispatchEvent(new Event('input',{bubbles:true}))}},{capture:true,passive:true});
  const block=e=>{if(TS&&e.target===TS.r&&TS.m!==1&&e.isTrusted){e.stopImmediatePropagation();TS.r.value=TS.v}};window.addEventListener('input',block,true);window.addEventListener('change',block,true);
  const end=()=>{const s_=TS;setTimeout(()=>{if(TS===s_)TS=null},50)};window.addEventListener('touchend',end,{capture:true,passive:true});window.addEventListener('touchcancel',end,{capture:true,passive:true})})();/* 처음 열면 3D 월드로 시작한다 */
+{const _dm=drawModel;drawModel=function(c,m,o){try{if(WORLD==='3d2'&&o&&o.pose&&m&&m.style==='knight')o={...o,pose:R3D2.clampPose(m,o.pose,o.down||0)}}catch(_){}return _dm.call(this,c,m,o)}}/* 3D 월드에서는 2D 그리기(그림 탭 안내값·손발 고리)에도 팔다리가 늘어나지 않은 자세를 넘긴다 */
