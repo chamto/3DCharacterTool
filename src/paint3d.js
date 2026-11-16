@@ -96,7 +96,7 @@ function paintModel(onProgress){
  let s=Math.min(N/1.25,N)/(m.style==='robot'?262:224)*.9,X=N/2,Y=N*.84;const sv=seed;
  // 3D 월드2에서 그리면: 색·모양 원본은 3D 화면(같은 투영)으로, 부품 위치·얼굴 같은 안내값(HINTS)과 부품 나누기는 같은 식의 2D 계산으로
  const USE3=R3D2.ok(m)&&R3D2.init();/* 3D 전용: 색·모양은 언제나 3D 화면 */
- const snap3=(mm)=>{const lines=mm.paint==='plain'?{wOut:0,wBnd:0,wArm:0}:{wOut:W3HOST.opt.w3o??.8,wBnd:W3HOST.opt.w3b??.8,wArm:W3HOST.opt.w3a??1};R3D2.render(mm,W3HOST.PB.disp,W3HOST.PB.down,X,Y,s,N,N,1,{shade:W3HOST.opt.shade3||'screen',...lines});sc_.drawImage(document.getElementById('gl3d2'),0,0,N,N);if(typeof W3HOST.wake==='function')W3HOST.wake(300)};
+ const snap3=(mm,lo)=>{const lines=lo||(mm.paint==='plain'?{wOut:0,wBnd:0,wArm:0}:{wOut:W3HOST.opt.w3o??.8,wBnd:W3HOST.opt.w3b??.8,wArm:W3HOST.opt.w3a??1});R3D2.render(mm,W3HOST.PB.disp,W3HOST.PB.down,X,Y,s,N,N,1,{shade:W3HOST.opt.shade3||'screen',...lines});sc_.drawImage(document.getElementById('gl3d2'),0,0,N,N);if(typeof W3HOST.wake==='function')W3HOST.wake(300)};
  const draw2=()=>{sc_.clearRect(0,0,N,N);seed=11;HINTS=R3D2.hints(m,W3HOST.PB.disp,W3HOST.PB.down,X,Y,s)};/* 붓질 안내값은 3D 뼈대에서 */
  const draw=USE3?()=>{draw2();sc_.clearRect(0,0,N,N);snap3(m)}:draw2;draw();
  // 그림 칸에 꽉 차게: 한 번 그려 크기를 재고, 비율을 맞춰 다시 그린다
@@ -105,6 +105,10 @@ function paintModel(onProgress){
  const D=sc_.getImageData(0,0,N,N).data;
  // 유화3: 평붓은 테두리 없는 모습으로 그리되, 유화 단계(결 붓칠·외곽선)는 테두리 있는 모습을 원본으로 쓴다
  const D2=(W3HOST.paint.popt.medium==='oil3'&&W3HOST.proj.model.style==='knight')?(()=>{const hs0=HINTS,sv2=seed;sc_.clearRect(0,0,N,N);seed=11;HINTS={};snap3({...W3HOST.proj.model,paint:'ink'});const d=sc_.getImageData(0,0,N,N).data;HINTS=hs0;seed=sv2;return d})():null,D_OUT=D;
+ // 이중섭풍 4단계 첫 붓: 3D 경계선(부품 경계·겹판 줄) 자리. 경계선만 켠 모습과 선 없는 모습을 같은 투영으로 그려 어두워진 칸을 경계선 칸으로 잡는다(외곽선은 3단계가 감으므로 뺀다)
+ const BLM=(USE3&&W3HOST.paint.popt.medium==='ljs')?(()=>{const sv3=seed,hs0=HINTS,keep=sc_.getImageData(0,0,N,N),wa=W3HOST.opt.w3a??1,mm={...m,paint:'ink'};
+  sc_.clearRect(0,0,N,N);snap3(mm,{wOut:0,wBnd:Math.max(.8,W3HOST.opt.w3b??.8),wArm:wa});const A=sc_.getImageData(0,0,N,N).data;sc_.clearRect(0,0,N,N);snap3(mm,{wOut:0,wBnd:0,wArm:wa});const B=sc_.getImageData(0,0,N,N).data;
+  sc_.putImageData(keep,0,0);HINTS=hs0;seed=sv3;const M=new Uint8Array(N*N);for(let i=0;i<N*N;i++){const q=i*4;if(A[q+3]>60&&B[q+3]>60&&(B[q]+B[q+1]+B[q+2])-(A[q]+A[q+1]+A[q+2])>90)M[i]=1}return M})():null;
  // 평붓 터치: 부품(관절) 하나씩 따로 그려 모양·방향·색을 재고, 그 안을 채울 굵은 붓 자국을 미리 만든다
  const SZ0={big:1.45,mid:1,fine:.68}[W3HOST.paint.popt.size],parts=[],mparts=[],pgeo=[],heads=[],IG=Math.ceil(N/3),IDB=new Int32Array(IG*IG),headPids=new Set();let pidN=0;
  const limbPids=new Map(),LIMBK=['thigh','shin','foot','uarm','farm','hand','torso','waist'];
@@ -352,6 +356,14 @@ function paintModel(onProgress){
  // 허리 경계: 모델이 알려 준 허리 둘레를 3단계 붓으로 한 번 감는다
  if(HINTS.waist&&HINTS.waist.length>1){const W_=HINTS.waist,wd=clamp(Math.hypot(W_[W_.length-1][0]-W_[0][0],W_[W_.length-1][1]-W_[0][1])*.07,4*SZ,10*SZ);lineStroke(W_.map(q=>[q[0]+rr(-.6,.6),q[1]+rr(-.6,.6)]),wd)}
  begin('명암 · 근육 · 질감');
+ // 첫 붓: 경계선 따라 그리기. 경계선 칸(2px 격자)을 따라 걸으며 이어진 선을 모아, 검은 먹붓으로 한 획씩 긋는다
+ if(BLM){const CG=2,cw=Math.ceil(N/CG),on=new Uint8Array(cw*cw),vis=new Uint8Array(cw*cw);for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(BLM[y*N+x])on[(y/CG|0)*cw+(x/CG|0)]=1;
+  const ok=(x,y)=>x>=0&&y>=0&&x<cw&&y<cw&&on[y*cw+x]&&!vis[y*cw+x],mk=(x,y)=>{for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++){const xx=x+i,yy=y+j;if(xx>=0&&yy>=0&&xx<cw&&yy<cw)vis[yy*cw+xx]=1}};
+  const walk=(x,y,a)=>{const out=[];for(let k=0;k<400;k++){let best=null;for(const da of[0,.26,-.26,.52,-.52,.79,-.79,1.05,-1.05])for(const d of[3,4]){const nx=Math.round(x+Math.cos(a+da)*d),ny=Math.round(y+Math.sin(a+da)*d);if(ok(nx,ny)){best=[nx,ny,a+da];break}}if(!best)break;const pa=a;[x,y]=best;a=Math.atan2(Math.sin(best[2]),Math.cos(best[2]));a=pa+Math.atan2(Math.sin(a-pa),Math.cos(a-pa))*.7;mk(x,y);out.push([x*CG+1,y*CG+1])}return out};
+  const lw=clamp(3.2*SZ,2.4,5.5),INKB=[[34,28,24],[52,44,38],[18,14,12]];
+  for(let y=0;y<cw;y++)for(let x=0;x<cw;x++){if(!ok(x,y))continue;let a0=null;for(let t=0;t<12&&a0===null;t++){const a=t/12*6.2832;for(const d of[3,4])if(ok(Math.round(x+Math.cos(a)*d),Math.round(y+Math.sin(a)*d))){a0=a;break}}mk(x,y);if(a0===null)continue;
+   const f=walk(x,y,a0),b=walk(x,y,a0+Math.PI),P=[...b.reverse(),[x*CG+1,y*CG+1],...f];if(P.length<4)continue;const S=smooth(P.map(q=>[q[0]+rr(-.5,.5),q[1]+rr(-.5,.5)]),1),ww=lw*rr(.85,1.15);
+   push(()=>{ribbonPath(c,'round',S,ww*1.25,[INKB[2],INKB[2],INKB[2]],.25);ribbonPath(c,'round',S,ww,INKB.map(q=>q.map(v=>clamp(v*(1+rr(-.1,.1)),0,255))),.92)})}}
  // 방향 고르기: 가로로 길면 가로, 세로로 길면 세로, 그 사이면 그 방향 그대로
  const snapA=a=>{a=((a%Math.PI)+Math.PI)%Math.PI;if(a<.3||a>Math.PI-.3)return 0;if(Math.abs(a-Math.PI/2)<.3)return Math.PI/2;return a};
  const inPoly=(H,x,y)=>{let s=0;for(let k=0;k<H.length;k++){const a=H[k],b=H[(k+1)%H.length],cr=(b[0]-a[0])*(y-a[1])-(b[1]-a[1])*(x-a[0]);if(cr!==0){const sg=cr>0?1:-1;if(s===0)s=sg;else if(s!==sg)return false}}return true};
