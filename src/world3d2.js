@@ -86,8 +86,13 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
    const key_=f+'|'+(pc?fc:''),ov_=document.getElementById('w3cvis');if(ov_&&(!cv_||ov_.dataset.k!==key_))ov_.remove();if(fb&&cv_&&!document.getElementById('w3cvis')){let vz='down';try{vz=proj.model.hkit.visor==='up'?'up':'down'}catch(_){}const g=document.createElement('div');g.id='w3cvis';g.dataset.k=key_;g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">'+(dj?'드림 상태':'면갑 상태')+'</div><div class="seg">'+(dj?[['down','드림 내리기 · 눈만'],['up',fc==='jin'?'드림 올리기 · 접어 올림':'드림 올리기 · 옆자락만']]:[['down','면갑 내리기'],['up','면갑 올리기']]).map(([v,l])=>'<button data-act="hkit" data-k="visor" data-v="'+v+'" aria-pressed="'+(vz===v)+'">'+l+'</button>').join('')+'</div>';((pc&&fcb)?fcb.parentNode:fb.parentNode).after(g)}}
   /* 조립 몸체: 원래 '면갑 상태'(면갑·평면 가면 얼굴)를 얼굴 가리개 바로 아래로 옮긴다 */
   {const fb2=pn.querySelector('button[data-act="hkit"][data-k="face"]'),fs=fb2&&fb2.parentNode,vs=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='면갑 상태'&&!e.closest('#w3cvis'));if(fs&&vs&&fs.nextElementSibling!==vs){const sg=vs.nextElementSibling;fs.after(vs);if(sg&&sg.classList.contains('seg'))vs.after(sg)}}
+  /* 머리에 쓰는 것: 기본은 맨머리, 투구·사슬 두건·천 두건을 켜고 끄는 단추(투구와 두건은 함께 쓸 수 있고, 두건은 둘 중 하나) */
+  {let M=null;try{M=proj.model}catch(_){}const hb=pn.querySelector('button[data-act="mset"][data-k="hwear"]'),hseg=hb&&hb.parentNode;
+   if(M&&hseg){if((M.hwear==='coif'||M.hwear==='hood')&&M.hood==null){M.hood=M.hwear;M.hwear='none'}/* 예전 값 옮기기 */
+    const hOn=(M.hwear||'helm')==='helm',hd=M.hood||'',kk=hOn+'|'+hd;if(hseg.dataset.w3!==kk){hseg.dataset.w3=kk;hseg.innerHTML=[['mset','hwear',hOn?'none':'helm','투구',hOn],['mset','hood',hd==='coif'?'':'coif','사슬 두건',hd==='coif'],['mset','hood',hd==='hood'?'':'hood','천 두건',hd==='hood']].map(([a,k,v,l,on])=>'<button data-act="'+a+'" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+on+'">'+l+'</button>').join('')}
+    const hsub=hseg.previousElementSibling;if(hsub&&hsub.classList.contains('sub')&&hsub.textContent.trim()==='머리에 쓰는 것')hsub.textContent='머리에 쓰는 것 · 여러 개 고르기'}}
   /* 조립 몸체: '머리에 쓰는 것'을 정수리 바로 위로 옮긴다(정수리가 있을 때만) */
-  {const hs=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='머리에 쓰는 것'),hseg=hs&&hs.nextElementSibling,ds=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='정수리');if(hs&&hseg&&hseg.classList.contains('seg')&&ds&&ds.previousElementSibling!==hseg){ds.before(hs);hs.after(hseg)}}
+  {const hs=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim().startsWith('머리에 쓰는 것')),hseg=hs&&hs.nextElementSibling,ds=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='정수리');if(hs&&hseg&&hseg.classList.contains('seg')&&ds&&ds.previousElementSibling!==hseg){ds.before(hs);hs.after(hseg)}}
   /* 조립 몸체: '얼굴 가리개' → '투구'(코·볼가리개는 빼서 '투구가리개'로), 챙은 투구 위로, 투구가리개(코가리개·볼가리개 여러 개 고르기) */
   {let H={},fP=false;try{H=proj.model.hkit||{};fP=proj.model.helm==='kit'&&(proj.model.hwear||'helm')==='helm'&&(H.form||'parts')==='parts'}catch(_){}const fb3=pn.querySelector('button[data-act="hkit"][data-k="face"]'),fseg=fb3&&fb3.parentNode,fsub=fseg&&fseg.previousElementSibling;
    if(fP&&fseg&&fsub&&fsub.classList.contains('sub')){for(const v of['nasal','cheek']){const b=fseg.querySelector('button[data-v="'+v+'"]');if(b)b.remove()}if(H.face==='nasal'||H.face==='cheek'){const o=fseg.querySelector('button[data-v="open"]');if(o)o.setAttribute('aria-pressed','true')}if(fsub.textContent.trim()!=='투구')fsub.textContent='투구';
@@ -270,7 +275,7 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   // 목·머리
   pmk('팔·어깨·장갑');tube(T(uS),vadd(K.head,[0,0,-8*hs]),5,4.4,st);
   helm(m,K,st,sk,tr,p);HLOC=null;pmk('목·머리·투구')}
- function helm(m,K,st,sk,tr,p){const{HL,hs}=K,kit=m.helm==='kit'&&m.hkit?m.hkit:null,HW=m.hwear||'helm',F=kit?kit.form:m.helm,up=kit?kit.visor==='up':(m.helm==='open'||m.helm==='peakup'),HC=kit&&kit.colors&&kit.colors.main?kit.colors.main:st,TC=kit&&kit.colors&&kit.colors.trim?kit.colors.trim:tr,INKC='#1d1a17';
+ function helm(m,K,st,sk,tr,p){let FONCE=0;/* 얼굴은 한 번만(두건 + 투구일 때 겹치지 않게) */const HOODK=m.hood!=null?m.hood:(m.hwear==='coif'||m.hwear==='hood'?m.hwear:'');/* 두건(사슬 coif·천 hood)은 투구와 따로 쓴다. 예전 값(hwear가 두건)도 읽는다 */const{HL,hs}=K,kit=m.helm==='kit'&&m.hkit?m.hkit:null,HW=m.hwear||'helm',F=kit?kit.form:m.helm,up=kit?kit.visor==='up':(m.helm==='open'||m.helm==='peakup'),HC=kit&&kit.colors&&kit.colors.main?kit.colors.main:st,TC=kit&&kit.colors&&kit.colors.trim?kit.colors.trim:tr,INKC='#1d1a17';
   const HB=bone([K.head,vmul(K.HR([1,0,0]),hs),vmul(K.HR([0,1,0]),hs),vmul(K.HR([0,0,1]),hs)]);CB=HB;let FDZ=0;// 머리 뼈(투구·머리카락·두건이 따라감). FDZ: 두건 위에 얼굴을 얹을 때 앞으로 띄우는 양
   // 얼굴 창: 앞쪽(x>2)에서 가운데 (u=c) 높이·폭 타원 안의 면은 만들지 않는다 → 안의 머리·얼굴이 보인다
   const inWin=(w,...P)=>{const c=P.reduce((a,b)=>vadd(a,b),[0,0,0]).map(v=>v/P.length);return c[0]>2&&(c[1]/w.r)**2+((c[2]-w.c)/w.h)**2<1};
@@ -284,28 +289,28 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const PATCH=!!m.patch||m.fEye==='patch'||m.fEye==='round';// 외눈 안대(따로 고르는 옵션; 예전에 눈 모양으로 고른 안대도 안대로)
   // 얼굴: 머리통·귀·눈동자·코 볼록면·덥수룩한 수염만 입체로 만들고, 눈썹·입·코 선·X 눈·가는 눈·안대와 끈·콧수염·턱수염·수염선은 얼굴 그림(머리 국소 좌표 텍스처)에 그린다
   const HF={o:K.head,s:hs,f:K.HR([1,0,0]),r:K.HR([0,1,0]),u:K.HR([0,0,1]),w:3};
-  const face=(full=true,noEars=false)=>{const pv_=V.length,t0=TAG,h0=HLOC;HLOC=HF;TAG=0;skull();SPID=PID;const fp={pid:SPID};
+  const face=(full=true,noEars=false)=>{if(FONCE)return;FONCE=1;const pv_=V.length,t0=TAG,h0=HLOC;HLOC=HF;TAG=0;skull();SPID=PID;const fp={pid:SPID};
    for(const sd of[-1,1]){if(noEars)break;ellip(v=>HL(vadd([-1,sd*8.75,-1.6],v)),1.85,.5,2.8,0,0,INKC,undefined,undefined,fp);ellip(v=>HL(vadd([-1,sd*9.05,-1.6],v)),1.5,.65,2.4,0,0,sk,undefined,undefined,fp)}/* 귀: 머리카락 밖으로(2D도 머리카락 위에 귀) */
    /* 눈동자는 얼굴 그림(텍스처)에 그린다 */
    if(full){const NZ={small:[1.2,.9,1.6],hook:[1.8,.9,2],broad:[1.2,1.6,1.5]}[nz]||[1.2,.9,1.6];ellip(v=>vadd(FPb(0,-3.6,-.4),v),NZ[0],NZ[1],NZ[2],0,0,sk,undefined,undefined,fp);
     if(bd==='full')ellip(HL,9.6,8.8,11.2,-.4,-1.6,hairC,-Math.PI/2,-.35,{capT:true,pid:SPID})}
    if(MODE==='mesh')faceTex({ey,ball:['dot','fierce','xround','patch','round'].includes(ey),nz,mo,bd,PATCH,hairC,brow,hair:m.hair||'short',full});TAG=t0;HLOC=h0;pmx('얼굴(머리통·귀·코)',pv_)};
   // 머리 모양(2D hairSet과 같은 선): 앞은 이마 위, 옆은 귀 높이, 뒤는 목덜미까지. 긴 머리=등 뒤로 늘어진 자락, 묶은 머리=뒤통수 위 상투, 민머리=없음
-  const hairCap=fill=>{const hs_=m.hair||'short';if(hs_==='bald')return;const pv_=V.length,h0=HLOC;HLOC=HF;
+  const hairCap=fill=>{if(HOODK)return;/* 두건 속 머리카락은 그리지 않는다 */const hs_=m.hair||'short';if(hs_==='bald')return;const pv_=V.length,h0=HLOC;HLOC=HF;
    if(MODE==='mesh'){const Rf=10.3,Rr=9.3,Ru=12,cf=-.9,cu=-1,n=24,zt=x=>fill?(x>.45?.42:x>.25?lerp(-.5,.42,(x-.25)/.2):-.5):(x>.45?.42:x>.25?lerp(-.05,.42,(x-.25)/.2):x>-.1?-.05:x>-.3?lerp(-.5,-.05,(x+.3)/.2):-.5),R=[];/* fill: 귀 자리 계단(구멍)을 없애고 옆도 뒤처럼 낮게 */
     for(let j=0;j<=7;j++){const a=[];for(let i=0;i<n;i++){const t=i/n*6.2832,la=lerp(Math.asin(zt(Math.cos(t))),Math.PI/2,j/7);a.push(HL([cf+Rf*Math.cos(la)*Math.cos(t),Rr*Math.cos(la)*Math.sin(t),cu+Ru*Math.sin(la)]))}R.push(a)}loft(R,hairC,{center:HL([cf,0,cu])});
     if(hs_==='long'){const top=[],bot=[];for(let k=0;k<12;k++){const t=Math.PI*.55+k/11*Math.PI*.9;top.push(HL([-.6+Math.cos(t)*10.4,Math.sin(t)*9.6,.8]));bot.push(HL([-.6+Math.cos(t)*11.4-1,Math.sin(t)*10.8,-18.2]))}const mid=top.map((q,k)=>vlerp(q,bot[k],.5));loft([top,mid,bot],hairC,{open:true,center:HL([-1,0,-6])})}}
    if(hs_==='knot')ellip(v=>HL(vadd(v,[-4,0,11.8])),3.4,3.4,3.4,0,0,hairC);HLOC=h0;pmx('머리카락',pv_)};
   // 사슬 두건(coif)·천 두건(hood): 머리를 감싸고 어깨까지 퍼지는 자락, 앞은 얼굴이 드러나는 타원 구멍(살색 면 + 얼굴)
-  const hood=chain=>{const col=chain?st:(p.cloth||'#6d675e'),G=chain?1.6:2.2,Rf=9.2+G,Rr=8.2+G,Ru=10.8+G,cf=-1,cu=-.8;
+  const hood=(chain,wh)=>{const col=chain?st:(p.cloth||'#6d675e'),G=chain?1.6:2.2,Rf=9.2+G,Rr=8.2+G,Ru=10.8+G,cf=-1,cu=-.8;
    face(true,true);// 안의 머리·얼굴(귀는 두건 속)
    if(MODE==='mesh'){const n=40,LR=[];{const a=[];for(let i=0;i<n;i++){const t=i/n*6.2832;a.push([Math.cos(t)*10.5-1.5,Math.sin(t)*11.5,-14.2])}LR.push(a)}
     for(let j=0;j<=14;j++){const la=lerp(-.6,Math.PI/2,j/14),a=[];for(let i=0;i<n;i++){const t=i/n*6.2832;a.push([cf+Rf*Math.cos(la)*Math.cos(t),Rr*Math.cos(la)*Math.sin(t),cu+Ru*Math.sin(la)])}LR.push(a)}
     const h0=HLOC;HLOC=chain?{o:K.head,s:hs,f:K.HR([1,0,0]),r:K.HR([0,1,0]),u:K.HR([0,0,1]),w:2}:null;// 사슬 두건: 머리 국소 좌표로 사슬 무늬
     const W_={r:5.9,c:-4,h:7.6};loft(LR.map(r=>r.map(HL)),col,{center:HL([cf,0,cu]),skip:(j,i,i2)=>inWin(W_,LR[j][i],LR[j][i2],LR[j+1][i],LR[j+1][i2])});HLOC=h0}
-   if(!chain)tube(HL([-9.5,0,6]),HL([-12.5,0,HE_CU+8]),2.6,.4,col,.6)};// 천 두건 꼬리
+   if(!chain&&!wh)tube(HL([-9.5,0,6]),HL([-12.5,0,HE_CU+8]),2.6,.4,col,.6)};/* 투구를 함께 쓰면 꼬리는 뺀다 */// 천 두건 꼬리
   const HE_CU=-1.2;
-  if(HW!=='helm'){if(HW==='coif'||HW==='hood'){hood(HW==='coif');return}face();hairCap();return}
+  if(HW!=='helm'){if(HOODK){hood(HOODK==='coif');return}face();hairCap();return}if(HOODK)hood(HOODK==='coif',true);/* 두건을 쓴 채로 투구를 덧쓴다 */
   const HAX={o:K.head,s:hs,f:K.HR([1,0,0]),r:K.HR([0,1,0]),u:K.HR([0,0,1])};HLOC=HAX;CB=HB;if(MODE==='mesh')helmTex(m,kit,F,up,HC,TC,sk);// 머리 뼈: 투구 몸체·면갑처럼 머리 좌표로 만든 면이 따라간다
   const _face=face,_deco0=null;
   // 위도 고리로 정의된 2D 투구 몸체를 그대로 로프트: 아래 목둘레 고리 → 위도 고리들 → 정수리
