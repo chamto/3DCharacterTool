@@ -2,7 +2,7 @@
 // 2D는 단면 점들의 겉 윤곽을 칠했지만, 여기서는 이웃 단면을 삼각형으로 이어(로프트) 진짜 겉면을 만든다. 투영은 2D와 같은 직교 투영.
 /* ═══ 2D·편집기 연동(호스트) ═══ 3D 월드는 아래 W3HOST로만 바깥(편집기·2D)에 닿는다. 3D를 따로 떼어 낼 때는 이 묶음만 바꿔 끼우면 된다.
    proj(모델·키 자료) commit(되돌리기 기록) opt·LS(화면 옵션 저장) VIEW(시점) WORLD·setWorld(월드 전환) wake(다시 그리기 요청) drag(무대 끌기 상태) drawModel(2D 그리기: 그림 탭 안내값·손발 고리) */
-const W3HOST={get proj(){return proj},commit:()=>commit(),get opt(){return opt},get LS(){return LS},get VIEW(){return VIEW},get WORLD(){return typeof WORLD!=='undefined'?WORLD:undefined},setWorld:w=>setWorld(w),wake:t=>wake(t),get drag(){return typeof drag!=='undefined'?drag:undefined},get drawModel(){return drawModel},set drawModel(f){drawModel=f}};
+const W3HOST={get proj(){return proj},commit:()=>commit(),get opt(){return opt},get LS(){return LS},get VIEW(){return VIEW},get WORLD(){return typeof WORLD!=='undefined'?WORLD:undefined},setWorld:w=>setWorld(w),wake:t=>wake(t),get drag(){return typeof drag!=='undefined'?drag:undefined},get drawModel(){return drawModel},set drawModel(f){drawModel=f},get PIECE_CAP(){return typeof PIECE_CAP!=='undefined'?PIECE_CAP:null},set PIECE_CAP(f){PIECE_CAP=f},get gl3d(){return document.getElementById('gl3d2')}};
 const R3D2=(()=>{
  /* ═══ 자체 계산 도구(2D 파일에서 옮겨 온 같은 식) ═══ 2D 쪽 같은 이름 함수에 기대지 않도록 3D 안에 따로 둔다 */
  const lerp=(a,b,k)=>a+(b-a)*k,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),norm=v=>{const m=Math.hypot(...v)||1;return v.map(x=>x/m)};
@@ -213,7 +213,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  // ─ 메쉬 쌓기: 꼭짓점마다 위치·법선·색 ─
  let V=[],IDS=[],HLA=[],SKA=[],DEC=[],HLOC=null,PID=0,TAG=2;
  /* 폴리곤(삼각형) 부위별 집계: pmk는 지금까지 쌓은 삼각형 중 직전 표시 뒤의 몫을 부위 이름으로 적고, pmx는 안쪽에서 따로 센 몫(얼굴·머리카락)을 적는다 */
- let PM=[],PMX={},PML=0;const pmk=n=>{if(MODE!=='mesh')return;const c=V.length/27;PM.push([n,c-PML]);PML=c},pmx=(n,v0)=>{if(MODE==='mesh')PMX[n]=(PMX[n]||0)+(V.length-v0)/27};
+ let PF=[],PFL=0;/* 그림 탭 부위 조각용 표시(2D 조각 이름: thigh·shin·foot·uarm·farm·hand·head·torso, 빈 이름 = 나머지) */let PM=[],PMX={},PML=0;const pmk=n=>{if(MODE!=='mesh')return;const c=V.length/27;PM.push([n,c-PML]);PML=c},pfk=t=>{if(MODE!=='mesh')return;const c=V.length/27;PF.push([t,c-PFL]);PFL=c},pmx=(n,v0)=>{if(MODE==='mesh')PMX[n]=(PMX[n]||0)+(V.length-v0)/27};
  function pmDone(){const x=Object.entries(PMX),sub=x.reduce((a,b)=>a+b[1],0),out=PM.map(([n,c])=>n==='목·머리·투구'?['목·투구·장식',c-sub]:[n,c]);for(const[n,c]of x)out.push([n,c]);return out.filter(e=>e[1]>0)}
  // 뼈: MODE 'mesh'(겉면 만들기, 기본자세 뼈를 REST에) / 'bone'(뼈만 계산해 CUR에). 뼈 = 틀(원점 + 축 3개). 부품마다 자기 틀을 뼈로 등록하므로 기본자세→지금자세 변환이 부품 모양과 정확히 맞는다
  let MODE='mesh',BI=0,CB=0,REST=[],CUR=[];const bone=F=>{(MODE==='mesh'?REST:CUR).push(F);return BI++};
@@ -263,7 +263,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const BT_=bone(torsoF(K));CB=BT_;const MS=MODE==='mesh';// 몸통 뼈: 숙임(lean)만큼 위로 갈수록 앞으로 밀리는 기울임(전단) + 웅크림 높이
   const JT=m.armor==='jin'?1:2;TAG=JT;// 금나라 미늘 갑옷이면 미늘 무늬
   if(MS){const TR=[];for(let k=0;k<=12;k++){const u=lerp(H0-7,uS+2,k/12);TR.push(ring(u))}const th=hex(tr),bc=hex(beltC),lc=hex(le),trow=decRow([1,H0,uS,m.armor!=='jin'&&AW>0?.22*AW:-1, uS+.5,uS+1.7,H0+4.6,H0+7.4, th[0],th[1],th[2],0, bc[0],bc[1],bc[2],0, lc[0],lc[1],lc[2],.75, 8,5,uS-1,H0+12, 2.5,H0+4,H0+8,1, H0+7,uS-2,1,15.6*bT]);/* 허리 겹판 줄·목둘레 테두리·허리띠·버클·등 멜빵·가슴 능선: 폴리곤 없이 몸통 셰이더가 그림 */
-   HLOC={fn:q=>[q[1]/(15.6*bT),(q[2]-(H0-7))/(uS+2-(H0-7)),q[0]-K.lv(q[2]).fo,10+trow]};loft(TR,st,{capB:true,capT:true});HLOC=null}TAG=2;pmk('몸통');const TPID=PID;// 몸통 부품 번호(몸통 위 줄들은 같은 번호 → 경계선 없음)
+   HLOC={fn:q=>[q[1]/(15.6*bT),(q[2]-(H0-7))/(uS+2-(H0-7)),q[0]-K.lv(q[2]).fo,10+trow]};loft(TR,st,{capB:true,capT:true});HLOC=null}TAG=2;pmk('몸통');pfk('torso');const TPID=PID;// 몸통 부품 번호(몸통 위 줄들은 같은 번호 → 경계선 없음)
   // 가슴 능선·허리 겹판 줄·목둘레 테두리·등 멜빵은 몸통 셰이더(장식표)가 그린다
   // 허리띠: 허리 단면을 조금 키운 띠
   // 허리띠·앞 버클도 몸통 셰이더(장식표)가 그린다
@@ -289,13 +289,13 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
     TAG=2;for(let k=0;k<NL;k++){const t0=Math.max(0,k/NL-(k?.05:0)),t1=(k+1)/NL,TS=[t0,(t0+t1)/2,t1,t1];loft([PT(t0,0),PT(TS[1],.3),PT(t1,.75),PT(t1,.3,.45)],st,{two:{pb:(j,i)=>HM[i],bb:BHm,t:j=>TS[j]}})}
     loft([PT(1,.55,.75),PT(1,1.15,.2),PT(1,1.05,-.45),PT(1,.4,-.35)],tr,{two:{pb:(j,i)=>HM[i],bb:BHm,t:()=>1}})}TAG=2}/* 밑단 테 */
   // 다리: 2D와 같은 반지름의 통
-  pmk('겉옷·치마·칼집·자락');for(const g of K.legs){const out=[.6,g.side*.8,0];tube(g.Hp,g.K,8*LM,6.4*LM,st,.5,{lames:[.12,.26],rivets:[.5],out});if(!m.coat&&m.armor!=='jin'&&!TON)tube(vadd(g.Hp,[2,g.side,7]),vlerp(g.Hp,g.K,.5),9.8*LM,8.8*LM,st,.5,{lames:[.28,.52,.76],rivets:[.15],out});
-   tube(vadd(g.K,[0,0,6]),vadd(g.K,[1,0,3.5]),6.6*LM,6.4*LM,st,.2,{rivets:[.52],out:[1,0,0],rr:.6});/* 무릎 리벳: 장식표 */tube(vadd(g.K,[.5,0,-4]),vadd(g.K,[0,0,-7]),6*LM,5.8*LM,st,.2);
-   tube(g.K,g.A,5.8*LM,4.1*LM,st,.5,{ridge:true});tube(vadd(g.A,[0,0,-1]),vadd(vadd(g.F,vmul(g.toe,14*Math.sqrt(LM))),[0,0,1.6]),4.6*LM,2.8*LM,st,.8,{lames:[.22,.36,.5,.64,.78]})}
+  pmk('겉옷·치마·칼집·자락');pfk('');for(const g of K.legs){const out=[.6,g.side*.8,0];tube(g.Hp,g.K,8*LM,6.4*LM,st,.5,{lames:[.12,.26],rivets:[.5],out});if(!m.coat&&m.armor!=='jin'&&!TON)tube(vadd(g.Hp,[2,g.side,7]),vlerp(g.Hp,g.K,.5),9.8*LM,8.8*LM,st,.5,{lames:[.28,.52,.76],rivets:[.15],out});
+   pfk('thigh');tube(vadd(g.K,[0,0,6]),vadd(g.K,[1,0,3.5]),6.6*LM,6.4*LM,st,.2,{rivets:[.52],out:[1,0,0],rr:.6});/* 무릎 리벳: 장식표 */tube(vadd(g.K,[.5,0,-4]),vadd(g.K,[0,0,-7]),6*LM,5.8*LM,st,.2);
+   tube(g.K,g.A,5.8*LM,4.1*LM,st,.5,{ridge:true});pfk('shin');tube(vadd(g.A,[0,0,-1]),vadd(vadd(g.F,vmul(g.toe,14*Math.sqrt(LM))),[0,0,1.6]),4.6*LM,2.8*LM,st,.8,{lames:[.22,.36,.5,.64,.78]});pfk('foot')}
   // 팔
-  pmk('다리');for(const g of K.arms){const{side,S,E,Hn}=g,ud=norm(vsub(E,S)),fw=norm(vsub(Hn,E)),wr=vsub(Hn,vmul(fw,3.5));const JA=m.armor==='jin',out=[.5,side*.85,0];TAG=JT;tube(S,E,5.6*LM,5*LM,st,.5,JA?{}:{lames:[.55],rivets:[.3],out});TAG=2;tube(E,wr,5*LM,4.3*LM,st,.5,{ridge:[.6,0,.6]});
+  pmk('다리');for(const g of K.arms){const{side,S,E,Hn}=g,ud=norm(vsub(E,S)),fw=norm(vsub(Hn,E)),wr=vsub(Hn,vmul(fw,3.5));const JA=m.armor==='jin',out=[.5,side*.85,0];TAG=JT;tube(S,E,5.6*LM,5*LM,st,.5,JA?{}:{lames:[.55],rivets:[.3],out});TAG=2;pfk('uarm');tube(E,wr,5*LM,4.3*LM,st,.5,{ridge:[.6,0,.6]});
    {const R_=5.6*LM,on_=norm(out),e1=norm(vcross(on_,[0,0,1])),e2=vcross(on_,e1),h0_=HLOC;/* 팔꿈치 리벳: 구 위 점(장식표 종류 2) */if(MS&&AW>0){const row=decRow([2,Math.cos(Math.min(1.4,.55*Math.sqrt(AW)/R_)),0,0]);HLOC={fn:p_=>{const q=vsub(p_,E);return[vdot(q,on_),vdot(q,e1),vdot(q,e2),10+row]}}}ellip(v=>vadd(E,v),R_,R_,R_,0,0,st);HLOC=h0_}ellip(v=>vadd(vadd(E,vmul([0,side,0],4.8*LM)),vadd(v,[-3,0,0])),4.4*LM,2.2*LM,4.4*LM,0,0,st);
-   tube(vsub(wr,vmul(fw,1.5)),vadd(wr,vmul(fw,3.5)),4.8*LM,6.8*LM,gl_,.15,{lames:[.6]});ellip(v=>vadd(Hn,v),4.8*LM,4.8*LM,4.8*LM,0,0,gl_);
+   pfk('farm');tube(vsub(wr,vmul(fw,1.5)),vadd(wr,vmul(fw,3.5)),4.8*LM,6.8*LM,gl_,.15,{lames:[.6]});ellip(v=>vadd(Hn,v),4.8*LM,4.8*LM,4.8*LM,0,0,gl_);pfk('hand');
    const LGP=!JA&&(m.paul==='large'||m.paul==='body'),top=LGP?vadd(S,vmul(ud,2.5*psz)):vadd(S,[0,side*2,3]),lo=vadd(S,vmul(ud,LGP?13.5*psz:12*psz));TAG=JT;if(JA||m.paul!=='body')tube(top,lo,LGP?6.6*psz:8.6*psz,LGP?6.2*psz:7.6*psz,st,.95,JA?{rim:tr}:{lames:LGP?[.25,.45,.65,.85]:[.34,.52,.7,.86],rivets:[.15],out,rim:tr});/* 대형 폴드런이면 팔 통은 위팔 겹판만(작게), 몸통 폴드런이면 위팔 겹판 통 없음 */TAG=2;
    if(!JA&&m.paul==='haute')boxF(vadd(S,[.5,-side*3.5,4+4.25*psz]),[5.5,0,0],[0,.6,0],[0,0,4.25*psz],st);
    const SBn=!JA&&(m.paul==='large'||m.paul==='body')?(()=>{const D0=norm([.05,side*.25,-1]),uh=norm(vlerp(D0,ud,.5)),r0=[0,side,0];let e2=vsub(r0,vmul(uh,vdot(r0,uh)));if(vlen(e2)<.25){const f0=[1,0,0];e2=vsub(f0,vmul(uh,vdot(f0,uh)))}e2=norm(e2);return bone([S,uh,e2,vcross(uh,e2)])})():-1;/* 어깨 뼈: 위팔이 도는 각도의 절반만 따라 도는 틀(두 모드 모두 등록). 겹판이 팔을 반쯤 따라가 크게 일그러지지 않게 */
@@ -313,10 +313,10 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
       const h1=HLOC;HLOC={fn:p_=>p_._h?[p_._h[0],p_._h[1],p_._h[2],10+prw]:[0,0,0,0]};
       loft(rows,st,{open:true,center:[K.lv(uS-6).fo,side*4,uS-6],two:{pb:(j,i)=>rows[j][i],bb:SBn,t:()=>0,ti:(j,i)=>{const p_=rows[j][i],rw0=K.lv(Math.min(p_[2],uS+1)).rw;return .9*clamp((Math.abs(p_[1])-rw0*.55)/(RWF-rw0*.55),0,1)*clamp((p_[2]-(uS-16))/8,.35,1)}}});HLOC=h1}}
     HLOC=hl0;/* 몸통 폴드런: 가슴·등 가운데 쪽은 몸통을, 어깨·팔 바깥 쪽은 어깨를 따라간다 */
-    CB=cb0}}// 오트 피스: 어깨 안쪽에 세운 관판(목 옆 방패판)// 어깨판: 겹판 줄·리벳·윗단 테두리
+    CB=cb0}pfk('uarm')}// 오트 피스: 어깨 안쪽에 세운 관판(목 옆 방패판)// 어깨판: 겹판 줄·리벳·윗단 테두리
   // 목·머리
   pmk('팔·어깨·장갑');tube(T(uS),vadd(K.head,[0,0,-8*hs]),5,4.4,st);
-  helm(m,K,st,sk,tr,p);HLOC=null;pmk('목·머리·투구')}
+  helm(m,K,st,sk,tr,p);HLOC=null;pmk('목·머리·투구');pfk('head')}
  function helm(m,K,st,sk,tr,p){let FONCE=0;/* 얼굴은 한 번만(두건 + 투구일 때 겹치지 않게) */const HOODK=m.hood!=null?m.hood:(m.hwear==='coif'||m.hwear==='hood'?m.hwear:'');/* 두건(사슬 coif·천 hood)은 투구와 따로 쓴다. 예전 값(hwear가 두건)도 읽는다 */const{HL,hs}=K,kit=m.helm==='kit'&&m.hkit?m.hkit:null,HW=m.hwear||'helm',F=kit?kit.form:m.helm,up=kit?kit.visor==='up':(m.helm==='open'||m.helm==='peakup'),HC=kit&&kit.colors&&kit.colors.main?kit.colors.main:st,TC=kit&&kit.colors&&kit.colors.trim?kit.colors.trim:tr,INKC='#1d1a17';
   const HB=bone([K.head,vmul(K.HR([1,0,0]),hs),vmul(K.HR([0,1,0]),hs),vmul(K.HR([0,0,1]),hs)]);CB=HB;let FDZ=0;// 머리 뼈(투구·머리카락·두건이 따라감). FDZ: 두건 위에 얼굴을 얹을 때 앞으로 띄우는 양
   // 얼굴 창: 앞쪽(x>2)에서 가운데 (u=c) 높이·폭 타원 안의 면은 만들지 않는다 → 안의 머리·얼굴이 보인다
@@ -605,7 +605,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   return[ax*r[0],ay*u[0],z*b[0],0, ax*r[1],ay*u[1],z*b[1],0, ax*r[2],ay*u[2],z*b[2],0, bx,by,0,1]}
  function render(m,pose,down,X,Y,s,W,H,DPR,o={}){if(!init())return false;if(m.style!=='knight'&&m.style!=='mech')return false;AW=o.wArm??1;HWK=1;const mk=JSON.stringify(m)+'|'+AW+'|'+dstep()+'|'+dshape()+'|'+dgap()+'|'+ddir()+'|'+dov();/* 머리 배율은 없앰(눈·코·입·투구 눈 틈은 기본 크기 고정) */if(!o.old&&skOK()&&SKBAD!==mk){if(renderSk(m,pose,down,X,Y,s,W,H,DPR,o,mk))return true;SKBAD=mk}lastStat={cpu:0,bone:0,n:1,old:true};// 스키닝을 못 쓰면(확장 미지원·뼈 수 불일치) 예전 방식
   const w=Math.round(W*DPR),h=Math.round(H*DPR);if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h}gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);
-  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);sword(m,K)}
+  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);sword(m,K)}
   gl.useProgram(prog);const cs=Math.cos(W3HOST.VIEW.yaw),sn=Math.sin(W3HOST.VIEW.yaw),U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('V'),false,view(X,Y,s,W,H));noSkin();gl.uniform3fv(U('L'),norm([sn*.9-cs*.7,cs*.9+sn*.7,1.1]));gl.uniform3fv(U('ink'),[.07,.065,.06]);gl.uniform3fv(U('B'),[sn*W3HOST.VIEW.uk,cs*W3HOST.VIEW.uk,W3HOST.VIEW.sq]);gl.uniform3fv(U('SR'),[cs,-sn,0]);gl.uniform3fv(U('SU'),[-sn*W3HOST.VIEW.sq,-cs*W3HOST.VIEW.sq,W3HOST.VIEW.uk]);gl.uniform1f(U('SM'),{toon:1,screen:2,matcap:3}[o.shade]||2);gl.uniform1f(U('BRU'),m.paint==='brush'?1:0);{const pp=m.pal||{},st=pp.steel||'#d9dee0';gl.uniform3fv(U('PST'),hex(st));gl.uniform3fv(U('PSH'),hex(pp.shade||hexMix(st,'#14161e',.4)));gl.uniform3fv(U('PHI'),hex(pp.hi||'#ffffff'))}
   const A=new Float32Array(V);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,A,gl.DYNAMIC_DRAW);const pL=gl.getAttribLocation(prog,'p'),nL=gl.getAttribLocation(prog,'n'),cL=gl.getAttribLocation(prog,'c');
   for(const[l,o] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,o)}const cnt=A.length/9;
@@ -636,15 +636,15 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  const mul34=(P,Q,out,o)=>{for(let r=0;r<3;r++){const p0=P[r*4],p1=P[r*4+1],p2=P[r*4+2],p3=P[r*4+3];for(let c=0;c<4;c++)out[o+r*4+c]=p0*Q[c]+p1*Q[4+c]+p2*Q[8+c]+(c===3?p3:0)}};
  const TI=[1,0,0,0,0,1,0,0,0,0,1,0],FT=new Float64Array(12),F2=new Float64Array(12),fm2=(F,o)=>{const[p,a,b,c]=F;o[0]=a[0];o[1]=b[0];o[2]=c[0];o[3]=p[0];o[4]=a[1];o[5]=b[1];o[6]=c[1];o[7]=p[1];o[8]=a[2];o[9]=b[2];o[10]=c[2];o[11]=p[2]};
  const REST_POSE=()=>P0(POSE_STAND);
- function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);sword(m,K);pmk('칼')}HLOC=null}
+ function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);sword(m,K);pmk('칼');pfk('')}HLOC=null}
  // 겉면을 기본자세에서 한 번만 만든다(모델 설정이 바뀌면 다시)
  function ensureMesh(m,key){if(MESH&&MESH.key===key)return MESH;
-  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const rp=REST_POSE(),K=skel(m,rp,0);K.m=m;K.pose=rp;K.down=0;build(m,K);
+  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const rp=REST_POSE(),K=skel(m,rp,0);K.m=m;K.pose=rp;K.down=0;build(m,K);
   const vbo=MESH&&MESH.vbo||gl.createBuffer(),ibo=MESH&&MESH.ibo||gl.createBuffer(),hbo=MESH&&MESH.hbo||gl.createBuffer(),sbo=MESH&&MESH.sbo||gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER,vbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(V),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,ibo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(IDS),gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,hbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(HLA),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,sbo);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(SKA),gl.STATIC_DRAW);
   const at_=decUp(MESH&&MESH.at);
-  MESH={key,vbo,ibo,hbo,sbo,parts:pmDone(),at:at_,cnt:V.length/9,nb:BI,pidn:PID+1,rinv:REST.map(F=>inv34(fm(F)))};V=[];IDS=[];HLA=[];SKA=[];return MESH}
+  MESH={key,vbo,ibo,hbo,sbo,parts:pmDone(),pf:PF.slice(),at:at_,cnt:V.length/9,nb:BI,pidn:PID+1,rinv:REST.map(F=>inv34(fm(F)))};V=[];IDS=[];HLA=[];SKA=[];return MESH}
  // 뼈만 계산: 같은 부품 함수를 'bone' 모드로 돌려 지금 자세의 틀을 모은다(겉면 점은 만들지 않음)
  function bones(m,pose,down){MODE='bone';BI=0;CB=0;CUR=[];HLOC=null;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;build(m,K);MODE='mesh';return K}
  const CS=[];// 군중 배치 칸(가운데부터 바깥으로)
@@ -670,7 +670,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   gl.bindBuffer(gl.ARRAY_BUFFER,ME.sbo);gl.enableVertexAttribArray(pbL);gl.vertexAttribPointer(pbL,3,gl.FLOAT,false,24,0);gl.enableVertexAttribArray(bwL);gl.vertexAttribPointer(bwL,3,gl.FLOAT,false,24,12);
   const IA=new Float32Array(NI);for(let i=0;i<NI;i++)IA[i]=i;gl.bindBuffer(gl.ARRAY_BUFFER,insb);gl.bufferData(gl.ARRAY_BUFFER,IA,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(inL);gl.vertexAttribPointer(inL,1,gl.FLOAT,false,4,0);XI.vertexAttribDivisorANGLE(inL,1);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,htex);gl.uniform1i(U('HT'),1);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,mtex);gl.uniform1i(U('MC'),3);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(U('LT'),5);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,facetx||ltex);gl.uniform1i(U('FT'),6);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,ME.at.tex);gl.uniform1i(U('AT'),7);gl.uniform2f(U('ATs'),ME.at.W,ME.at.TH);gl.activeTexture(gl.TEXTURE0);
-  const D=()=>XI.drawArraysInstancedANGLE(gl.TRIANGLES,0,ME.cnt,NI);// 같은 겉면을 인원수만큼 한 번에(인스턴싱)
+  const D=()=>{if(o.only){for(const[a,c]of o.only)XI.drawArraysInstancedANGLE(gl.TRIANGLES,a,c,NI)}else XI.drawArraysInstancedANGLE(gl.TRIANGLES,0,ME.cnt,NI)};/* o.only: [시작 꼭짓점, 개수] 목록만 그린다(그림 탭 부위 조각) */// 같은 겉면을 인원수만큼 한 번에(인스턴싱)
   // 1) 부품 번호 그림 → 2) 외곽선 → 3) 본 그림: 모든 캐릭터를 한꺼번에
   fboSize(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(U('ow'),0);gl.uniform1f(U('flat_'),3);D();gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);
   // (바깥 외곽선도 부품 경계선 단계에서 같은 굵기로 긋는다: 배경과 부품의 경계)
@@ -690,7 +690,8 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
 setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1안·2안·3안 제거, 조관 추가)는 2D에서도 처음부터 */
 /* 자세를 3D 뼈대의 닿는 거리 안으로 맞춘 자세로 돌려준다(손·발 목표만 바꿈). 2D 계산(그림 탭 안내값·화면 고리)도 같은 팔다리 길이를 쓰게 한다 */
  const clampPose=(m,pose,down)=>{const K=skel(m,pose,down||0),bd=m.body||{},bL=bd.leg??1,L=pose.lean+(down||0)*14,drop=(down||0)*30+(pose.crouch??0),legDrop=48-48*bL,h2=K.hd[2]+drop+legDrop,h=[K.hd[0]-L*(h2-48)/60,K.hd[1],h2],ft=K.legs.map(g=>[g.F[0],g.F[1]]),pf=pose.feet;let ch=Math.hypot(h[0]-pose.h[0],h[1]-pose.h[1],h[2]-pose.h[2])>1e-4;if(pf)for(let i=0;i<2;i++)if(Math.hypot(ft[i][0]-pf[i][0],ft[i][1]-pf[i][1])>1e-4)ch=true;return ch?{...pose,h,feet:pf?ft:pose.feet}:pose};
- return{render,show,init,clampPose,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
+ const pieces=()=>{if(!MESH||!MESH.pf)return[];let v=0;return MESH.pf.map(([t,c])=>{const r=[t,v,c*3];v+=c*3;return r}).filter(r=>r[2]>0)};/* 부위 조각: [이름, 시작 꼭짓점, 개수] */
+ return{render,show,init,clampPose,pieces,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
 setTimeout(()=>{try{if(W3HOST.WORLD==='2d')W3HOST.setWorld('3d2')}catch(e){console.warn(e)}},0);
 /* 화면을 위아래로 쓸어 넘길 때 손가락이 지나간 슬라이더 값이 바뀌지 않게: 터치가 가로로 8px 넘게 움직여야 슬라이더를 움직인 것으로 본다(세로로 먼저 움직이면 스크롤, 값은 그대로) */
 (()=>{let TS=null;try{const st=document.createElement('style');st.textContent='input[type=range]{touch-action:pan-y}';document.head.appendChild(st)}catch(_){}
@@ -699,4 +700,10 @@ setTimeout(()=>{try{if(W3HOST.WORLD==='2d')W3HOST.setWorld('3d2')}catch(e){conso
  window.addEventListener('touchmove',e=>{if(!TS||TS.m)return;const t=e.touches[0],dx=Math.abs(t.clientX-TS.x),dy=Math.abs(t.clientY-TS.y);if(dy>8&&dy>=dx){TS.m=2;TS.r.value=TS.v}else if(dx>8){TS.m=1;TS.r.dispatchEvent(new Event('input',{bubbles:true}))}},{capture:true,passive:true});
  const block=e=>{if(TS&&e.target===TS.r&&TS.m!==1&&e.isTrusted){e.stopImmediatePropagation();TS.r.value=TS.v}};window.addEventListener('input',block,true);window.addEventListener('change',block,true);
  const end=()=>{const s_=TS;setTimeout(()=>{if(TS===s_)TS=null},50)};window.addEventListener('touchend',end,{capture:true,passive:true});window.addEventListener('touchcancel',end,{capture:true,passive:true})})();/* 처음 열면 3D 월드로 시작한다 */
-{const _dm=W3HOST.drawModel;W3HOST.drawModel=function(c,m,o){try{if(W3HOST.WORLD==='3d2'&&o&&o.pose&&m&&m.style==='knight')o={...o,pose:R3D2.clampPose(m,o.pose,o.down||0)}}catch(_){}return _dm.call(this,c,m,o)}}/* 3D 월드에서는 2D 그리기(그림 탭 안내값·손발 고리)에도 팔다리가 늘어나지 않은 자세를 넘긴다 */
+{const _dm=W3HOST.drawModel;W3HOST.drawModel=function(c,m,o){let w3=false;try{w3=W3HOST.WORLD==='3d2'&&o&&o.pose&&m&&m.style==='knight';if(w3)o={...o,pose:R3D2.clampPose(m,o.pose,o.down||0)}}catch(_){w3=false}
+  const cap=w3?W3HOST.PIECE_CAP:null;if(!cap)return _dm.call(this,c,m,o);
+  /* 그림 탭이 부위 조각(PIECE_CAP)을 받는 중이면: 안내값(HINTS)만 2D로 채우고, 조각 모양·색은 3D 화면을 부위별로 따로 그려 넘긴다(2D 모델이 섞이지 않게) */
+  W3HOST.PIECE_CAP=null;let r;try{r=_dm.call(this,c,m,o)}finally{W3HOST.PIECE_CAP=cap}
+  try{const N=c.canvas.width,op=W3HOST.opt||{},lines=m.paint==='plain'?{wOut:0,wBnd:0,wArm:0}:{wOut:op.w3o??.8,wBnd:op.w3b??.8,wArm:op.w3a??1},ro={shade:op.shade3||'screen',...lines};
+   if(R3D2.render(m,o.pose,o.down||0,o.X,o.Y,o.s,N,N,1,ro)){const PS=R3D2.pieces(),cv3=W3HOST.gl3d;c.clearRect(0,0,N,N);for(const[t,a,n]of PS)cap(()=>{R3D2.render(m,o.pose,o.down||0,o.X,o.Y,o.s,N,N,1,{...ro,only:[[a,n]]});c.drawImage(cv3,0,0,N,N)},t||undefined)}}catch(e){console.warn(e)}
+  return r}}/* 3D 월드에서는 2D 그리기(그림 탭 안내값·손발 고리)에도 팔다리가 늘어나지 않은 자세를 넘긴다 */
