@@ -544,7 +544,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,htex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,tcv);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0)}
  // ─ 칼 ─
  function sword(m,K){const p=m.pal||{},d=K.d,hd=K.hd,pom=vsub(hd,vmul(d,14)),guard=vadd(hd,vmul(d,4)),tip=vadd(hd,vmul(d,bladeLen(m)));let gv=vcross(d,[0,0,1]);if(vlen(gv)<.2)gv=[0,1,0];gv=norm(gv);
-  tube(pom,guard,1.8,1.8,p.leather||'#5a3e2a',.2);ellip(v=>vadd(pom,v),2.8,2.8,2.8,0,0,p.trim||'#c9a24a');tube(vsub(guard,vmul(gv,8)),vadd(guard,vmul(gv,8)),1.2,1.2,p.trim||'#7d878d',.6);
+  tube(pom,guard,1.8,1.8,p.leather||'#5a3e2a',.2);ellip(v=>vadd(pom,v),2.8,2.8,2.8,0,0,p.trim||'#c9a24a');tube(vsub(guard,vmul(gv,8)),vadd(guard,vmul(gv,8)),1.2,1.2,p.trim||'#7d878d',.6);pfk('');/* 그림 탭 조각: 손잡이·코등이와 칼날을 나눈다(칼날만의 곧은 축) */
   // 칼날: 납작한 마름모 단면을 손잡이→칼끝으로 로프트
   const th=norm(vcross(d,gv)),bw=2.4,bt=.5;CB=bone([guard,gv,th,d]);/* 칼 뼈 */const sec=(c,w)=>[vadd(c,vmul(gv,w)),vadd(c,vmul(th,bt*w/bw)),vsub(c,vmul(gv,w)),vsub(c,vmul(th,bt*w/bw))];loft([sec(guard,bw),sec(vlerp(guard,tip,.85),bw*.85),sec(tip,.05)],p.blade||'#dfe3e4',{capB:true,center:vlerp(guard,tip,.5)})}
 
@@ -702,7 +702,14 @@ setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1�
   {const u=H0+6,v=K.lv(u),g=m.coat?1.6:m.armor==='jin'?1:.4,NW=28,P=[];for(let k=0;k<NW;k++){const t=k/NW*6.2832,q=[v.fo+Math.cos(t)*(v.df+g),Math.sin(t)*(v.rw+g),u],nv=dep([Math.cos(t)/v.df,Math.sin(t)/v.rw,0]);P.push([q,nv>.002])}let st=P.findIndex((e,i)=>!e[0+1]&&P[(i+1)%NW][1]);if(st<0)st=0;const W_=[];for(let k=1;k<=NW;k++){const e=P[(st+k)%NW];if(!e[1])break;W_.push(Jp(e[0]))}if(W_.length>1)H.waist=W_}
   return H};
  /* 부위 조각 넘기기: 모델 전체를 그린 뒤 조각마다 보이는 부분만 3D로 다시 그려 cap(그리기, 이름)에 넘긴다 */
- const eachPiece=(m,pose,down,X,Y,s,N,ro,cap,c)=>{if(!render(m,pose,down,X,Y,s,N,N,1,ro))return false;const cv3=W3HOST.gl3d;for(const[t,a,n]of pieces())cap(()=>{render(m,pose,down,X,Y,s,N,N,1,{...ro,only:[[a,n]]});c.drawImage(cv3,0,0,N,N)},t||undefined);return true};
+ const eachPiece=(m,pose,down,X,Y,s,N,ro,cap,c)=>{if(!render(m,pose,down,X,Y,s,N,N,1,ro))return false;const cv3=W3HOST.gl3d,G=3,GW=Math.ceil(N/G);
+  for(const[t,a,n]of pieces()){render(m,pose,down,X,Y,s,N,N,1,{...ro,only:[[a,n]]});c.clearRect(0,0,N,N);c.drawImage(cv3,0,0,N,N);const im=c.getImageData(0,0,N,N),d=im.data,L=new Int32Array(GW*GW);
+   for(let y=0;y<GW;y++)for(let x=0;x<GW;x++){const px=Math.min(N-1,x*G+1),py=Math.min(N-1,y*G+1);if(d[(py*N+px)*4+3]>60)L[y*GW+x]=-1}
+   const comps=[];for(let i=0;i<L.length;i++){if(L[i]!==-1)continue;const id=comps.length+1,st=[i];L[i]=id;let cnt=0;while(st.length){const k=st.pop();cnt++;const x=k%GW,y=k/GW|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=GW||yy>=GW)continue;const q=yy*GW+xx;if(L[q]===-1){L[q]=id;st.push(q)}}}comps.push(cnt)}
+   const big=comps.map((n_,i)=>n_>=12?i+1:0).filter(Boolean);if(!big.length)continue;
+   if(big.length===1){const img=im;cap(()=>c.putImageData(img,0,0),t||undefined);continue}
+   for(const id of big){const img=new ImageData(new Uint8ClampedArray(d),N,N),e=img.data;for(let py=0;py<N;py++){const gy=Math.min(GW-1,py/G|0);for(let px=0;px<N;px++){const gx=Math.min(GW-1,px/G|0);if(L[gy*GW+gx]!==id)e[(py*N+px)*4+3]=0}}cap(()=>c.putImageData(img,0,0),t||undefined)}}
+  return true};/* 부위 조각 넘기기: 모델 전체를 그린 뒤 조각마다 보이는 부분만 3D로 다시 그리고, 화면에서 끊어진 덩어리(3px 칸 연결, 12칸 이상)마다 따로 cap(그리기, 이름)에 넘긴다(가려져 여러 조각으로 보이는 몸통·칼도 덩어리마다 테두리·붓질) */
  const pieces=()=>{if(!MESH||!MESH.pf)return[];let v=0;return MESH.pf.map(([t,c])=>{const r=[t,v,c*3];v+=c*3;return r}).filter(r=>r[2]>0)};/* 부위 조각: [이름, 시작 꼭짓점, 개수] */
  return{render,show,init,clampPose,pieces,hints,eachPiece,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
 setTimeout(()=>{try{if(W3HOST.WORLD==='2d')W3HOST.setWorld('3d2')}catch(e){console.warn(e)}},0);
