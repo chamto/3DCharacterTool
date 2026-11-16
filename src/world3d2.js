@@ -38,9 +38,9 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(vh.w>2.5&&vh.w<3.5){float az=atan(vh.y,vh.x+1.);vec4 f=texture2D(FT,vec2(.5+az/6.2832,(20.-vh.z)/34.));col=mix(col,f.rgb,f.a);}// 얼굴 그림: 눈썹·입·코 선·X 눈·안대와 끈·콧수염·수염선(폴리곤 대신 머리 국소 좌표 그림)
   if(vh.w>3.5&&vh.w<4.5){col=mix(col,vec3(.11,.1,.09),texture2D(LT,vec2(atan(vh.y,vh.x)/6.2832+.5,clamp(vh.z/14.,.01,.99)),-16.).a);}// 정강이·아래팔 능선: 통 둘레 각도·반지름으로 찾아 읽는 먹선(찰갑 그림 A칸)
   col=mix(col,PSH*.95,dcR);// 가슴 가운데 능선(장식표 몸통 줄에서)
-  col=mix(col,vec3(.114,.102,.09),dcK);// 갑옷줄 먹선·리벳: 명암 없이
+  col=mix(col,BRU>.5?col*.52:vec3(.114,.102,.09),dcK*(BRU>.5?.75:1.));/* 붓터치: 갑옷줄은 먹색 대신 바탕색을 어둡게(2D처럼 연한 회색 줄) */// 갑옷줄 먹선·리벳: 명암 없이
   if(vt>2.5&&vt<3.5)col=vc;// 갑옷줄 먹선: 명암·광택 없이
-  gl_FragColor=vec4(col,1.);}`;
+  if(BRU>.5){vec2 fp=gl_FragCoord.xy;float a1=dot(fp,vec2(.94,.34)),a2=dot(fp,vec2(-.34,.94)),r1=fract(sin(floor(a1/4.)*91.7)*4375.85),r2=fract(sin(floor(a1/4.)*17.3+floor((a2+r1*400.)/(50.+r1*90.))*53.1)*2341.7);col=mix(col,min(col*1.12+.05,vec3(1.)),step(.7,r1)*step(.55,r2)*.55);}/* 붓터치: 2D처럼 화면에 비스듬히 지나가는 마른 붓 결(밝은 가는 줄, 군데군데 끊김) */gl_FragColor=vec4(col,1.);}`;
  const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(s);return s};
  // 관절 외곽선(부품 경계선): 부품 번호를 따로 그린 뒤, 이웃 픽셀의 번호가 다르면 먹선을 긋는다 → 2D처럼 부품마다 외곽선
  const EVS=`attribute vec2 q;varying vec2 uv;void main(){uv=q*.5+.5;gl_Position=vec4(q,0.,1.);}`;
@@ -53,8 +53,8 @@ const R3D2=(()=>{let gl=null,cvs=null,prog=null,vb=null,ok=false;
  void main(){float c=id(vec2(0.));float e=0.;vec2 fc=gl_FragCoord.xy;float bw=BRU>.5?mix(.6,1.6,vn(fc/9.)):1.;for(int i=0;i<8;i++){float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*bw;
    if(wo>.01){e+=.09*hit(c,id(o*wo),1.)+.035*hit(c,id(o*wo*.5),1.);}
    if(wb>.01){e+=.09*hit(c,id(o*wb),0.)+.035*hit(c,id(o*wb*.5),0.);}}
-  float al=smoothstep(.03,.2,e);if(BRU>.5){al*=mix(.45,1.,vn(fc/5.+3.1));al*=step(.16,vn(fc/14.+7.7));}if(al<.02)discard;// 붓선: 진하기 흔들림 + 군데군데 끊김
- /* 선명하게: 조금만 걸쳐도 진하게, 가장자리 1픽셀 안에서만 부드럽게 */gl_FragColor=vec4(ink*al,al);}`;
+  float al=smoothstep(.03,.2,e);if(BRU>.5){al*=mix(.45,1.,vn(fc/5.+3.1));al*=step(.16,vn(fc/14.+7.7));}if(BRU>.5)al*=.38;if(al<.02)discard;// 붓선: 진하기 흔들림 + 군데군데 끊김
+ /* 선명하게: 조금만 걸쳐도 진하게, 가장자리 1픽셀 안에서만 부드럽게 */gl_FragColor=vec4((BRU>.5?mix(ink,vec3(.4,.4,.44),.6):ink)*al,al);}`;/* 붓터치: 2D처럼 먹선 외곽선 없이 연한 회색으로 옅게 */
  let eprog=null,qb=null,fbo=null,ftex=null,frb=null,fw=0,fh=0;
  function fboSize(w,h){if(fbo&&fw===w&&fh===h)return;fw=w;fh=h;if(!fbo){fbo=gl.createFramebuffer();ftex=gl.createTexture();frb=gl.createRenderbuffer()}
   gl.bindTexture(gl.TEXTURE_2D,ftex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);for(const k of[gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.NEAREST);for(const k of[gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);
