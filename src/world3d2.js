@@ -175,7 +175,14 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const od=document.getElementById('w3drim');if(od&&!jin)od.remove();
   if(jin&&!document.getElementById('w3drim')){const anc=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='드림 상태');const at=anc&&anc.nextElementSibling;if(at){const g=document.createElement('div');g.id='w3drim';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">드림 조정 · 드림 올림(3D 월드)</div>';
     for(const[k,nm,mn,mx,st,get,fmt]of[['drimStep','단',1,4,1,dstep,v=>v+'단'],['drimGap','단차',0,2,.05,dgap,v=>(+v).toFixed(2)],['drimOv','층 겹침',0,6,.1,dov,v=>(+v).toFixed(1)]]){const lb=document.createElement('label');lb.className='sl';lb.innerHTML='<span>'+nm+'</span><input type="range"><b></b>';const r=lb.querySelector('input'),bv=lb.querySelector('b');r.min=mn;r.max=mx;r.step=st;r.value=String(get());bv.textContent=fmt(r.value);r.oninput=()=>{bv.textContent=fmt(r.value);try{W3HOST.opt[k]=+r.value;W3HOST.LS.set('model-ed-opt',W3HOST.opt);W3HOST.wake(500)}catch(_){}};g.appendChild(lb)}
-    at.after(g)}}}
+    at.after(g)}}
+  /* 동작 탭: 먹 궤적을 고르면 그리는 범위(칼 이동 전체 / 타격만) */
+  {let tf='ink';try{tf=W3HOST.opt.trailFx||'ink'}catch(_){}const oi=document.getElementById('w3inkr'),tb=pn.querySelector('button[data-act="trailfx"]');if(oi&&(!w3||tf!=='ink'||!tb))oi.remove();
+   if(w3&&tf==='ink'&&tb&&!document.getElementById('w3inkr')){const g=document.createElement('div');g.id='w3inkr';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">먹 궤적 그리는 범위(3D 월드)</div><div class="seg"></div>';const sg=g.querySelector('.seg');
+    for(const[v,nm]of[['all','칼 이동 전체'],['strike','타격만']]){const b=document.createElement('button');b.type='button';b.textContent=nm;b.setAttribute('aria-pressed',String(inkRange()===v));b.onclick=()=>{try{W3HOST.opt.inkRange=v;W3HOST.LS.set('model-ed-opt',W3HOST.opt);W3HOST.wake(500)}catch(_){}for(const x of sg.children)x.setAttribute('aria-pressed',String(x===b))};sg.appendChild(b)}
+    tb.parentNode.after(g)}}}
+ /* 먹 궤적 그리는 범위: 'all' 타격 첫 프레임부터 되돌아가는 동작까지 칼 이동 전체(기본), 'strike' 타격 키 동안만(남기는 것은 같음) */
+ function inkRange(){try{return W3HOST.opt.inkRange==='strike'?'strike':'all'}catch(_){return 'all'}}
  /* 카메라 위아래 회전 제한 풀기: editor.js는 VIEW.sq를 .2~1로 묶는다. 3D 월드2에서 시점을 돌릴 때만 그 뒤에 이어 받아 -.95~1(아래에서 올려다보기까지)로 넓힌다. 다른 월드로 나가면 원래 범위로 되돌린다 */
  /* 꼬리 끝 고리: 무대 위에 '꼬리 끝' 고리를 그리고(겹친 투명 그림판), 끌면 꼬리 끝을 옮긴다(m.tailTip). 편집기 손·발 고리처럼 동작하되 편집기 코드는 건드리지 않고 창의 잡기 단계에서 가로챈다 */
  function tailUI(){const cv=document.getElementById('cv');if(!cv||document.getElementById('w3tailov'))return;const ov=document.createElement('canvas');ov.id='w3tailov';ov.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:6';(cv.parentNode||document.body).appendChild(ov);/* 무대(#stage) 안, 3D 그림판(z 1) 위에 겹친다 */let TDR=null;
@@ -766,10 +773,10 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(!fxitex)fxitex=gl.createTexture();gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,fxitex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0);return fxitex}
  function fxInk(K,o){/* 반환: 꼭짓점 배열(꼬리표 flat_=5, n=(u,v,1), 색 자리 r에 불투명도) 또는 null.
-    자취는 타격 첫 프레임부터 재생이 끝날 때까지(타격 뒤 제자리로 돌아가는 동작 포함) 칼끝이 움직일 때마다 모은다.
+    자취는 타격 첫 프레임부터 재생이 끝날 때까지(타격 뒤 제자리로 돌아가는 동작 포함) 칼끝이 움직일 때마다 모은다(그리는 범위 '타격만'이면 타격 키 동안만).
     칼이 도는 방향이 바뀌면(내려치고 되돌아감) 획을 나눠, 획마다 2D 먹 호처럼 끝(그 획의 마지막 칼)이 가장 두꺼운 초승달로 그린다. */
   const tr=FX.tr||(FX.tr=[]);if(!tr.length){const s0=FX.SM[0];tr.push({h:s0.h,g:s0.g,t:s0.t})}/* 첫 칸: 시작 칼(앞 키 자세) */
-  {const cur=bladeOf(K),l=tr[tr.length-1];if(vlen(vsub(cur.t,l.t))>.3){tr.push({h:K.hd,g:cur.g,t:cur.t});FX.ev=null}}
+  if(o.strike||inkRange()==='all'){const cur=bladeOf(K),l=tr[tr.length-1];if(vlen(vsub(cur.t,l.t))>.3){tr.push({h:K.hd,g:cur.g,t:cur.t});FX.ev=null}}
   if(FX.ev)return FX.ev;if(tr.length<2)return null;
   const G=[];let REF=null;for(let i=0;i<tr.length-1;i++){const A=tr[i],B=tr[i+1],dA=vsub(A.t,A.h),dB=vsub(B.t,B.h),rA=vlen(dA)||1,rB=vlen(dB)||1,ang=Math.acos(clamp(vdot(dA,dB)/(rA*rB),-1,1)),ax=vcross(dA,dB);if(!REF&&ang>.05)REF=norm(ax);G.push({A,B,dA,dB,rA,rB,ang,ax})}
   /* 획 나누기: 도는 방향(첫 큰 회전축 REF와의 부호)이 바뀌는 칸에서 새 획. 아주 작은 회전은 지금 획에 붙인다 */
