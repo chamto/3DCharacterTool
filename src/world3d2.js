@@ -291,7 +291,8 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    const MU=((uS-8)+(H0+6))/2;/* 몸통에 붙일 때 기준 높이: 겨드랑이(uS−8)와 허리(H0+6) 중간 */
    let top=TOR?(fr?[K.bend(MU)-2,10*bT,MU]:[K.bend(MU)-3,-11*bT,MU]):(fr?[K.bend(H0+5)-2,12*bT,H0+5]:[K.bend(H0+5)+5,-13*bT,H0+5]),tip=TOR?(fr?[K.bend(H0)-4,-15*bT,MU-34]:[K.bend(H0)-8,-12*bT,MU-36]):(fr?[-14,-18*bT,H0-32*bL]:[-16,-17*bT,H0-38]);
    top[1]*=FL;tip[1]*=FL;{const d=vsub(tip,top),c_=Math.cos(ANG),s_=Math.sin(ANG),SIDE_=!fr;tip=vadd(top,SIDE_?[d[0]*c_+d[2]*s_,d[1],-d[0]*s_+d[2]*c_]:[d[0],d[1]*c_-d[2]*s_,d[1]*s_+d[2]*c_])}/* 가로지름은 등판 면(앞뒤 축)으로, 옆구리 뒤로(허리·몸통)는 옆면(좌우 축)으로 돌린다 */
-   if(TOR){const dz=MU-vlerp(top,tip,clamp(m.sheathPt??1/3,0,1))[2];top=vadd(top,[0,0,dz]);tip=vadd(tip,[0,0,dz])}/* 몸통: 칼집의 붙이는 자리(위쪽 끝에서 sheathPt 비율, 기본 1/3)가 겨드랑이와 허리 중간 높이(MU)에 오게 옮긴다 */
+   if(TOR){/* 몸통: 붙이는 점 = 옆구리는 겨드랑이와 허리 중간 높이의 왼쪽 옆구리 겉면, 뒤쪽은 등 한가운데 겉면. 칼집의 sheathPt 자리(0 위쪽 끝 ~ 1 칼끝, 기본 1/3)를 이 점에 붙인다 */
+    const f=clamp(m.sheathPt??1/3,0,1),d=vsub(tip,top),RA=2.6+(m.sheathHug?.05:1.5)+1,BZ=(uS+H0+6)/2,v=K.lv(fr?BZ:MU),AP=fr?[v.fo-v.df-RA,0,BZ]:[v.fo,-FL*(v.rw+RA),MU];top=vsub(AP,vmul(d,f));tip=vadd(AP,vmul(d,1-f))}
    {/* 겹침 방지: 칼집을 따라 표본 17개가 몸통·허리·엉덩이 단면, 치마(겉옷·미늘·톤렛, 지금 무릎 위치로 벌어진 모양), 허벅지 통 안(칼집 반지름+여유)에 들어가면 밀어낸다. 허리 쪽 표본이면 위쪽 끝을, 아니면 칼끝을 민다 */
     const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,COAT_=m.coat&&m.armor!=='jin',JIN_=m.armor==='jin',HUG=!!m.sheathHug,RS=2.6+(HUG?.05:1.5),SS=HUG?.2:1;/* 몸에 붙이기: 여유 없이, 먼저 몸 쪽으로 닿을 때까지 당긴 뒤 잘게 밀어낸다 */
     const SKD=TON?{u0:H0+5,g:1.4,cx:kc[0]*.5,rx:15.5*bT+1.2,ry:Math.max(17*bT,spread+8*LM)+1.2,hem:Math.max(H0-29*bL,kc[2]+1),sh:t=>1-(1-t)**1.8}:JIN_?{u0:H0+6,g:1.2,cx:kc[0]*.5,rx:13.5*bT,ry:Math.max(16.5*bT,spread+7*LM),hem:Math.max(H0-36*bL,kc[2]-9),sh:t=>t}:COAT_?{u0:H0+6,g:1.7,cx:kc[0]*.55,rx:12*bT+.8,ry:Math.max(15*bT,spread+6*LM),hem:Math.max(H0-22,kc[2]+6),sh:t=>t}:null;
@@ -301,8 +302,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
      for(const g of K.legs){const A=g.Hp,B=g.K,ab=vsub(B,A),tt=clamp(vdot(vsub(q,A),ab)/vdot(ab,ab),0,1),c_=vadd(A,vmul(ab,tt));if(vlen(vsub(q,c_))<(COAT_||TON?8:9.8)*LM+RS)return true}/* 허벅지 */
      return false};
     const sg=top[1]<0?-1:1,BK=fr,FS=TOR&&!fr,dT=vmul(BK?[-.4,0,0]:vmul(norm([FS?-.15:-.35,sg,0]),.4),SS),dP=vmul(BK?[-.4,0,0]:vmul(norm(FS?[-.25,sg,0]:[-1,sg*.6,0]),.5),SS);/* 몸통 옆구리 뒤로: 왼쪽 옆구리(옆면)에 붙도록 옆으로 민다 *//* 허리에 걸린 위쪽 끝은 조금만, 칼끝은 뒤(옆구리 뒤로는 뒤·바깥)로 */
-    if(HUG){const has=(a,b)=>{for(let i=a;i<=b;i++)if(inside(vlerp(top,tip,i/16)))return true;return false};for(let it=0;it<300&&!has(0,3);it++)top=vsub(top,dT);for(let it=0;it<400&&!has(4,16);it++)tip=vsub(tip,dP)}/* 위쪽 끝·칼끝을 각각 몸에 닿을 때까지 당긴다 */
-    for(let it=0;it<800;it++){let hi=-1;for(let i=0;i<=16;i++)if(inside(vlerp(top,tip,i/16))){hi=i;break}if(hi<0)break;if(hi<=3)top=vadd(top,dT);else tip=vadd(tip,dP)}}
+    if(TOR){/* 몸통: 붙이는 점이 어긋나지 않게 칼집 전체를 그대로 옮겨(옆구리는 바깥 옆, 뒤쪽은 뒤로) 몸과 겹치지 않게만 한다 */const dM=vmul(fr?[-1,0,0]:[0,sg,0],.4*SS),any=()=>{for(let i=0;i<=16;i++)if(inside(vlerp(top,tip,i/16)))return true;return false};for(let it=0;it<800&&any();it++){top=vadd(top,dM);tip=vadd(tip,dM)}}
+    else{if(HUG){const has=(a,b)=>{for(let i=a;i<=b;i++)if(inside(vlerp(top,tip,i/16)))return true;return false};for(let it=0;it<300&&!has(0,3);it++)top=vsub(top,dT);for(let it=0;it<400&&!has(4,16);it++)tip=vsub(tip,dP)}/* 위쪽 끝·칼끝을 각각 몸에 닿을 때까지 당긴다 */
+    for(let it=0;it<800;it++){let hi=-1;for(let i=0;i<=16;i++)if(inside(vlerp(top,tip,i/16))){hi=i;break}if(hi<0)break;if(hi<=3)top=vadd(top,dT);else tip=vadd(tip,dP)}}}
    tube(top,tip,2.6,2.1,p.sheath||le,.9);tube(vlerp(top,tip,.92),tip,2.25,1.75,st,.9);CB=BT_}
   // 겉옷: 가슴 아래~허리 몸판 + 무릎까지 치마
   const COAT=m.coat&&m.armor!=='jin';if(COAT){const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,hemU=Math.max(H0-22,kc[2]+6);
