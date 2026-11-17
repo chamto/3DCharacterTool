@@ -179,8 +179,11 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 동작 탭: 먹 궤적을 고르면 그리는 범위(칼 이동 전체 / 타격만) */
   {let tf='ink';try{tf=W3HOST.opt.trailFx||'ink'}catch(_){}const oi=document.getElementById('w3inkr'),tb=pn.querySelector('button[data-act="trailfx"]');if(oi&&(!w3||tf!=='ink'||!tb))oi.remove();
    if(w3&&tf==='ink'&&tb&&!document.getElementById('w3inkr')){const g=document.createElement('div');g.id='w3inkr';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">먹 궤적 그리는 범위(3D 월드)</div><div class="seg"></div>';const sg=g.querySelector('.seg');
-    for(const[v,nm]of[['all','칼 이동 전체'],['strike','타격만']]){const b=document.createElement('button');b.type='button';b.textContent=nm;b.setAttribute('aria-pressed',String(inkRange()===v));b.onclick=()=>{try{W3HOST.opt.inkRange=v;W3HOST.LS.set('model-ed-opt',W3HOST.opt);W3HOST.wake(500)}catch(_){}for(const x of sg.children)x.setAttribute('aria-pressed',String(x===b))};sg.appendChild(b)}
+    for(const[v,nm]of[['all','칼 이동 전체'],['strike','타격만']]){const b=document.createElement('button');b.type='button';b.textContent=nm;b.setAttribute('aria-pressed',String(inkRange()===v));b.onclick=()=>{try{W3HOST.opt.inkRange=v;W3HOST.LS.set('model-ed-opt',W3HOST.opt);W3HOST.wake(500)}catch(_){}for(const x of sg.children)x.setAttribute('aria-pressed',String(x===b));cr.style.display=v==='strike'?'':'none'};sg.appendChild(b)}
+    /* 타격만일 때: 타격 뒤 다음 동작(키)으로 바뀌면 궤적 지우기 */const cr=document.createElement('div');cr.className='row';cr.style.display=inkRange()==='strike'?'':'none';const cb=document.createElement('button');cb.type='button';cb.textContent='타격 뒤 동작이 바뀌면 궤적 지우기';cb.setAttribute('aria-pressed',String(inkClear()));cb.onclick=()=>{const on=!inkClear();try{W3HOST.opt.inkClear=on;W3HOST.LS.set('model-ed-opt',W3HOST.opt);W3HOST.wake(500)}catch(_){}cb.setAttribute('aria-pressed',String(on))};cr.appendChild(cb);g.appendChild(cr);
     tb.parentNode.after(g)}}}
+ /* 타격만 + 이 옵션: 타격 키가 끝나 다음 키로 넘어가면 먹 궤적을 지운다 */
+ function inkClear(){try{return !!W3HOST.opt.inkClear}catch(_){return false}}
  /* 먹 궤적 그리는 범위: 'all' 타격 첫 프레임부터 되돌아가는 동작까지 칼 이동 전체(기본), 'strike' 타격 키 동안만(남기는 것은 같음) */
  function inkRange(){try{return W3HOST.opt.inkRange==='strike'?'strike':'all'}catch(_){return 'all'}}
  /* 카메라 위아래 회전 제한 풀기: editor.js는 VIEW.sq를 .2~1로 묶는다. 3D 월드2에서 시점을 돌릴 때만 그 뒤에 이어 받아 -.95~1(아래에서 올려다보기까지)로 넓힌다. 다른 월드로 나가면 원래 범위로 되돌린다 */
@@ -790,7 +793,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    const O=[],I=[],U=[];for(let i=0;i<P.length;i++){const q=P[i],u=cum[i]/tot;U.push(u);O.push(vadd(q.h,vmul(q.d,q.r*(1-.03*(1-u)))));I.push(vadd(q.h,vmul(q.d,q.r*(1-(1-ri)*Math.pow(u,1.5)))))}
    const V_=(p,u,v)=>EV.push(p[0],p[1],p[2],u,v,1,al,0,0);for(let i=0;i<P.length-1;i++){V_(O[i],U[i],0);V_(I[i],U[i],1);V_(I[i+1],U[i+1],1);V_(O[i],U[i],0);V_(I[i+1],U[i+1],1);V_(O[i+1],U[i+1],0)}}
   if(!EV.length)return null;FX.ev=EV;FX.rin=rin;return EV}
- const fxKeep=o=>{const pb=W3HOST.PB;return !!(FX&&FX.tr&&o.mode==='ink'&&pb&&pb.on&&pb.idx>=FX.idx)};/* 먹 궤적: 타격이 끝나도 재생이 끝나거나 처음 키 쪽으로 돌아갈 때까지 계속 칼 자취를 모으고 그린다 */
+ const fxKeep=o=>{const pb=W3HOST.PB;if(inkRange()==='strike'&&inkClear())return false;return !!(FX&&FX.tr&&o.mode==='ink'&&pb&&pb.on&&pb.idx>=FX.idx)};/* 먹 궤적: 타격이 끝나도 재생이 끝나거나 처음 키 쪽으로 돌아갈 때까지 계속 칼 자취를 모으고 그린다 */
  function fxQuad(P,x0,y0,x1,y1){const q=[[x0,y0,0,0],[x1,y0,1,0],[x1,y1,1,1],[x0,y1,0,1]].map(([x,y,u,v])=>[P.bk(x,y),u,v]),EV=[];for(const i of[0,1,2,0,2,3]){const[p,u,v]=q[i];EV.push(p[0],p[1],p[2],u,v,1,0,0,0)}return EV}
  function fxRun(m,K,o,U,pL,nL,cL){const fls=o.mode==='flash';if(o.strike&&(!FX||FX.idx!==o.idx||(fls&&!FX.S)))FX=fxBuild(m,o);if(!FX)return;K.m=m;let EV,tx=true;
   if(!fls){EV=fxInk(K,o);if(!EV)return;fxInkTex(FX.rin);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,fxitex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}else{EV=fxFlash(K);const cv=fx2Paint(FX.S,o);gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
