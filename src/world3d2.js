@@ -287,10 +287,10 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    if(MS){const TP=[],BTm=[];for(let k=0;k<=6;k++){const y=lerp(-1,1,k/6);TP.push(vadd(tp,[.2*(1-y*y),y*4.6*bT,0]));BTm.push(vadd(bt,[.2*(1-y*y),y*5.2*bT,0]))}const RR=[0,1,2,3].map(j=>TP.map((q,k)=>vlerp(q,BTm[k],j/3)));CB=BT_;loft(RR,fc,{open:true,center:T(H0-10),two:{pb:(j,i)=>BTm[i],bb:BF,t:j=>j/3}})}
    for(let k=0;k<=6;k++){const q=vadd(bt,[.3,lerp(-5.2,5.2,k/6)*bT,0]);TAG=3;tube(q,vadd(q,[0,0,-3]),.22,.22,INKL,.5);TAG=2}CB=BT_}
   // 칼집(허리 → 뒤 또는 앞으로): 통 + 끝 장식(쇠 마구리)
-  if(m.sheath){const fr=m.sheathDir==='front',TOR=m.sheathAt==='torso',FL=m.sheathFlip?-1:1,ANG=clamp(+(m.sheathAng||0),-90,90)*Math.PI/180;/* TOR: 몸통에 붙임, FL: 반대쪽, ANG: 칼집 각도(위쪽 끝을 축으로 돌림. 반대쪽이어도 기본과 같은 방향으로 돈다) */
+  if(m.sheath){const fr=m.sheathDir==='front',TOR=m.sheathAt==='torso',FL=m.sheathFlip?-1:1,ANG=clamp(+(m.sheathAng||0),-90,90)*Math.PI/180;/* TOR: 몸통에 붙임, FL: 반대쪽, ANG: 칼집 각도(왼쪽·오른쪽이 거울 대칭으로 돈다) */
    const MU=((uS-8)+(H0+6))/2;/* 몸통에 붙일 때 기준 높이: 겨드랑이(uS−8)와 허리(H0+6) 중간 */
    let top=fr?[K.bend(MU)-2,10*bT,MU]:[K.bend(MU)-3,-11*bT,MU],tip=fr?[K.bend(H0)-4,-15*bT,MU-34]:[K.bend(H0)-8,-12*bT,MU-36];/* 칼집 방향·길이는 허리·몸통이 같다(붙이는 점만 다름) */
-   top[1]*=FL;tip[1]*=FL;{const d=vsub(tip,top),c_=Math.cos(ANG),s_=Math.sin(ANG),SIDE_=!fr;tip=vadd(top,SIDE_?[d[0]*c_+d[2]*s_,d[1],-d[0]*s_+d[2]*c_]:[d[0],d[1]*c_-d[2]*s_,d[1]*s_+d[2]*c_])}/* 가로지름은 등판 면(앞뒤 축)으로, 옆구리 뒤로(허리·몸통)는 옆면(좌우 축)으로 돌린다 */
+   top[1]*=FL;tip[1]*=FL;{const SIDE_=!fr,A_=SIDE_?ANG:ANG*FL,d=vsub(tip,top),c_=Math.cos(A_),s_=Math.sin(A_);/* 좌우 대칭: 뒤쪽(등판 면, 앞뒤 축 회전)은 반대쪽에서 각도를 뒤집고, 옆구리(옆면, 좌우 축 회전)는 그대로 */tip=vadd(top,SIDE_?[d[0]*c_+d[2]*s_,d[1],-d[0]*s_+d[2]*c_]:[d[0],d[1]*c_-d[2]*s_,d[1]*s_+d[2]*c_])}/* 가로지름은 등판 면(앞뒤 축)으로, 옆구리 뒤로(허리·몸통)는 옆면(좌우 축)으로 돌린다 */
    {/* 붙이는 점: 몸통 = 옆구리는 겨드랑이와 허리 중간 높이의 왼쪽 옆구리 겉면, 뒤쪽은 등 한가운데 겉면. 허리 = 옆구리는 허리띠 높이의 왼쪽 옆구리 겉면, 뒤쪽은 허리 뒤 한가운데 겉면. 칼집의 sheathPt 자리(0 위쪽 끝 ~ 1 칼끝, 기본 1/3)를 이 점에 붙인다 */
     const f=clamp(m.sheathPt??1/3,0,1),d=vsub(tip,top),RA=2.6+(m.sheathHug?.05:1.5)+(TOR?1:1.4),BZ=TOR?(fr?(uS+H0+6)/2:MU):H0+5,v=K.lv(BZ),AP=fr?[v.fo-v.df-RA,0,BZ]:[v.fo,-FL*(v.rw+RA),BZ];top=vsub(AP,vmul(d,f));tip=vadd(AP,vmul(d,1-f))}
    {/* 겹침 방지: 칼집을 따라 표본 17개가 몸통·허리·엉덩이 단면, 치마(겉옷·미늘·톤렛, 지금 무릎 위치로 벌어진 모양), 허벅지 통 안(칼집 반지름+여유)에 들어가면 밀어낸다. 허리 쪽 표본이면 위쪽 끝을, 아니면 칼끝을 민다 */
