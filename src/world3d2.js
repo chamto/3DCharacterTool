@@ -29,7 +29,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    else if(kd<1.5){/* 몸통: vh=(좌우 -1~1, 높이 0~1, 앞뒤). 앞 그림은 첫 칸, 뒤 그림은 옆 칸 */ts.y=512.;uv=vec2(vh.x*.5+.5,vh.y);if(vh.z<0.)og.x+=256.;}
    else{/* 구: vh=리벳 방향을 x축으로 한 좌표 → 앞 반구를 (y,z)로 눌러 편 그림 */vec3 n=normalize(vh.xyz);uv=n.yz*.5+.5;on=step(0.,n.x);}
    return og+clamp(uv,.5/ts,1.-.5/ts)*ts;}
- void main(){if(flat_>4.5){gl_FragColor=texture2D(ST,vn.xy);return;}if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5),bd=0.;if(vh.w>9.5){float on_;vec2 px=floor(atpx(on_))+.5;bd=floor(texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs).b*255.+.5)*on_;}gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,(128.+bd)/255.,1.);return;}/* 번호 그림: 파랑 = 128 + 그림판 구역 번호(겹판 줄로 나뉜 띠). 겹판 줄을 경계선으로 그리게 한다 */if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
+ void main(){if(flat_>4.5){vec4 tx=texture2D(ST,vn.xy);gl_FragColor=vec4(tx.rgb,tx.a*(vc.r>0.?vc.r:1.));return;}if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5),bd=0.;if(vh.w>9.5){float on_;vec2 px=floor(atpx(on_))+.5;bd=floor(texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs).b*255.+.5)*on_;}gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,(128.+bd)/255.,1.);return;}/* 번호 그림: 파랑 = 128 + 그림판 구역 번호(겹판 줄로 나뉜 띠). 겹판 줄을 경계선으로 그리게 한다 */if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
   vec3 base=vc;float txa=0.;if(vh.w>.5&&vh.w<1.5){float az=atan(vh.y,vh.x+1.);vec4 tx=texture2D(HT,vec2(.5+az/6.2832,(20.-vh.z)/34.));base=mix(base,tx.rgb,tx.a);txa=tx.a;}// 투구 상세 텍스처: 머리 국소 좌표로 방위각·높이를 구해 입힌다
   // 2D처럼 팔레트 그늘색·밝은색을 쓴다(판금은 모델 팔레트 값, 나머지는 바탕색에서 2D와 같은 비율로 만든다)
   /* 갑옷줄·리벳·테두리·띠·버클·멜빵·가슴 능선: 폴리곤도 수식도 아닌, 미리 구워 둔 그림판(AT)에서 읽는다. 꼬리표 w = 10 + 종류(0 통,1 몸통,2 구) + 3·칸 번호. dcK=먹선, dcB=바탕색 덮기(명암 받음), dcR=가슴 능선 */
@@ -756,29 +756,32 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 칼날 번쩍임: 흰빛·옅은 노랑 세 겹 */
   c.save();c.lineCap='round';for(const[wd,al] of[[16,.25],[9,.5],[4.5,.95]]){c.strokeStyle=`rgba(${r},${g},${b},${al})`;c.lineWidth=wd;c.beginPath();c.moveTo(h[0],h[1]);c.lineTo(a[0],a[1]);c.stroke()}c.strokeStyle=fl?'rgba(130,170,225,.7)':'rgba(220,170,50,.7)';c.lineWidth=1;c.beginPath();c.moveTo(h[0],h[1]);c.lineTo(a[0],a[1]);c.stroke();c.restore();return fxcv}
  function fxFlash(K){const S=FX.S,P=FX.P,cur=bladeOf(K);S.cur={h:P.pr(cur.g),a:P.pr(cur.t)};return fxQuad(P,S.x0,S.y0,S.x1,S.y1)}
- /* ─ 먹 궤적(3D, 2D 먹 궤적과 같은 방식) ─ 미리 그려 둔 먹 호 그림(휘두른 각도 40~180°×안쪽 비율 4종) 가운데 가장 가까운 장을 골라
-    손을 축으로 돌려 붙인다. 최근 170ms 칼 자취(손·코등이·칼끝)를 휘두르는 면 평면 좌표로 바꿔 쓰고, 캔버스에 그려 평면 위 사각형에 붙인다. */
- const SL_SP=[40,70,100,140,180],SL_IN=[.1,.35,.6,.78],SL_R=190,SL_C=400;let SL_IMG=null;
- function slMake(deg,rin){const cv=document.createElement('canvas');cv.width=cv.height=SL_C;const c=cv.getContext('2d');c.translate(SL_C/2,SL_C/2);
-  const sp=deg*Math.PI/180,a0=-sp/2,N=64,R=SL_R,Ri=R*rin,inr=u=>R-(R-Ri)*Math.pow(u,1.5),outr=u=>R*(1-.03*(1-u)),outer=[],inner=[];for(let k=0;k<=N;k++){const u=k/N,a=a0+sp*u;outer.push([Math.cos(a)*outr(u),Math.sin(a)*outr(u)]);inner.push([Math.cos(a)*inr(u),Math.sin(a)*inr(u)])}
-  c.fillStyle='#12100e';c.beginPath();outer.forEach((p,k)=>k?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));for(let k=N;k>=0;k--)c.lineTo(inner[k][0],inner[k][1]);c.closePath();c.fill();c.strokeStyle='#f2eee4';c.lineCap='round';
-  const band=(f0,w,u0,u1)=>{c.lineWidth=w;c.beginPath();let first=true;for(let k=Math.round(u0*N);k<=Math.round(u1*N);k++){const u=k/N,a=a0+sp*u,r=outr(u)-(outr(u)-inr(u))*f0,x=Math.cos(a)*r,y=Math.sin(a)*r;first?c.moveTo(x,y):c.lineTo(x,y);first=false}c.stroke()};
-  band(.08,4,.35,.97);band(.3,1.8,.5,.93);band(.55,1.3,.62,.9);return cv}
- const wrapA=a=>{while(a>Math.PI)a-=6.2832;while(a<-Math.PI)a+=6.2832;return a};
- function fxInk(K,o){/* 반환: {cv, x0,y0,x1,y1} 평면 좌표 사각형. 그릴 것이 없으면 null */
-  const P=FX.P,cur=bladeOf(K),tr=FX.tr||(FX.tr=[]);if(!tr.length){const s0=FX.SM[0];tr.push({c:o.clock-1,h:P.pr(s0.h),a:P.pr(s0.t),b:P.pr(s0.g)})}/* 타격 첫 프레임: 시작 칼(앞 키 자세)을 자취 첫 칸으로. 프레임이 느려도 휘두른 각도가 잡힌다 */tr.push({c:o.clock,h:P.pr(K.hd),a:P.pr(cur.t),b:P.pr(cur.g)});while(tr.length&&o.clock-tr[0].c>170)tr.shift();if(tr.length<2)return null;
-  const ang=e=>Math.atan2(e.a[1]-e.h[1],e.a[0]-e.h[0]),rad=(e,k)=>Math.hypot(e[k][0]-e.h[0],e[k][1]-e.h[1]);let span=0,rmax=0;for(let i=1;i<tr.length;i++)span+=wrapA(ang(tr[i])-ang(tr[i-1]));for(const e of tr)rmax=Math.max(rmax,rad(e,'a'));
-  const asp=Math.abs(span);if(asp<.45||rmax<20)return null;if(!SL_IMG)SL_IMG=SL_IN.map(r=>SL_SP.map(d=>slMake(d,r)));
-  const last=tr[tr.length-1],ratio=clamp(rad(last,'b')/Math.max(1,rad(last,'a')),0,.95),ri=SL_IN.reduce((b,v,k)=>Math.abs(v-ratio)<Math.abs(SL_IN[b]-ratio)?k:b,0),deg=Math.min(180,asp*180/Math.PI),ix=SL_SP.reduce((b,v,k)=>Math.abs(v-deg)<Math.abs(SL_SP[b]-deg)?k:b,0),sw=SL_SP[ix]*Math.PI/180,rot=ang(tr[0])+Math.sign(span)*sw/2,k_=rmax/SL_R;
-  const hx=last.h[0],hy=last.h[1],Rb=rmax*1.05+4,x0=hx-Rb,y0=hy-Rb,x1=hx+Rb,y1=hy+Rb,RS=Math.min(2,1024/(2*Rb));if(!fxcv)fxcv=document.createElement('canvas');const cw=Math.max(2,Math.ceil(2*Rb*RS));if(fxcv.width!==cw||fxcv.height!==cw){fxcv.width=cw;fxcv.height=cw}
-  const c=fxcv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cw,cw);c.setTransform(RS,0,0,RS,-x0*RS,-y0*RS);c.globalAlpha=Math.min(1,asp/.9);c.translate(hx,hy);c.rotate(rot);c.scale(k_,k_*Math.sign(span));c.drawImage(SL_IMG[ri][ix],-SL_C/2,-SL_C/2);c.globalAlpha=1;
-  return{cv:fxcv,x0,y0,x1,y1}}
+ /* ─ 먹 궤적(3D, 2D 먹 궤적 모양) ─ 2D 먹 호 그림(먹색 초승달 + 종이색 결 세 줄)과 같은 모양을, 실제 칼 자취를 따라가는 3D 띠로 그린다.
+    바깥 가장자리 = 칼끝 자취, 안쪽 가장자리 = 손에서 칼끝 쪽으로 반지름 비율 1-(1-rin)·u^1.5(u: 0 시작 → 1 지금 칼). 그래서 지금 칼날에 딱 붙는다.
+    무늬는 띠 좌표(u = 칼끝이 지나온 길이 비율, v = 바깥 0 → 안쪽 1)로 그린 텍스처(fxInkTex). 자취는 타격 동안 모두 모으고, 재생이 끝나거나 처음 키로 돌아갈 때까지 남긴다. */
+ let fxitex=null,fxikey='';
+ function fxInkTex(rin){const key=rin.toFixed(2);if(fxitex&&fxikey===key)return fxitex;fxikey=key;const W=512,H=128,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');c.fillStyle='#12100e';c.fillRect(0,0,W,H);c.fillStyle='#f2eee4';
+  const R=190,Ri=R*rin,inr=u=>R-(R-Ri)*Math.pow(u,1.5),outr=u=>R*(1-.03*(1-u)),band=(f0,w,u0,u1)=>{const top=[],bot=[];for(let x=Math.round(u0*W);x<=Math.round(u1*W);x+=2){const u=x/W,th=w/Math.max(1,outr(u)-inr(u))*H*.5;top.push([x,f0*H-th]);bot.push([x,f0*H+th])}if(top.length<2)return;c.beginPath();top.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));for(let i=bot.length-1;i>=0;i--)c.lineTo(bot[i][0],bot[i][1]);c.closePath();c.fill()};
+  band(.08,4,.35,.97);band(.3,1.8,.5,.93);band(.55,1.3,.62,.9);
+  if(!fxitex)fxitex=gl.createTexture();gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,fxitex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0);return fxitex}
+ function fxInk(K,o){/* 반환: 꼭짓점 배열(꼬리표 flat_=5, n=(u,v,1), 색 자리 r에 불투명도) 또는 null */
+  const tr=FX.tr||(FX.tr=[]);if(o.strike){if(!tr.length){const s0=FX.SM[0];tr.push({h:s0.h,g:s0.g,t:s0.t})}/* 타격 첫 프레임: 시작 칼(앞 키 자세)을 첫 칸으로 */const cur=bladeOf(K),l=tr[tr.length-1];if(vlen(vsub(cur.t,l.t))>.3)tr.push({h:K.hd,g:cur.g,t:cur.t});FX.ev=null}
+  if(FX.ev!==undefined&&FX.ev!==null)return FX.ev;if(tr.length<2)return null;
+  /* 이웃 칸 사이를 손 둘레 각도로 잘게 나눠 곡선으로(프레임이 성겨도 둥근 호) */const P=[];for(let i=0;i<tr.length-1;i++){const A=tr[i],B=tr[i+1],dA=vsub(A.t,A.h),dB=vsub(B.t,B.h),rA=vlen(dA)||1,rB=vlen(dB)||1,ang=Math.acos(clamp(vdot(dA,dB)/(rA*rB),-1,1)),ns=Math.max(1,Math.ceil(ang/.06));for(let k=0;k<ns;k++){const f=k/ns,h=vlerp(A.h,B.h,f),d=norm(vlerp(vmul(dA,1/rA),vmul(dB,1/rB),f)),r=lerp(rA,rB,f),gr=lerp(vlen(vsub(A.g,A.h))/rA,vlen(vsub(B.g,B.h))/rB,f);P.push({h,d,r,gr,a:ang/ns})}}
+  {const L=tr[tr.length-1],d=vsub(L.t,L.h),r=vlen(d)||1;P.push({h:L.h,d:vmul(d,1/r),r,gr:vlen(vsub(L.g,L.h))/r,a:0})}
+  let span=0;for(const q of P)span+=q.a;if(span<.45)return null;const al=Math.min(1,span/.9),rin=clamp(P[P.length-1].gr,.1,.78);
+  const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+vlen(vsub(vadd(P[i].h,vmul(P[i].d,P[i].r)),vadd(P[i-1].h,vmul(P[i-1].d,P[i-1].r)))));const tot=cum[cum.length-1]||1;
+  const O=[],I=[],U=[];for(let i=0;i<P.length;i++){const q=P[i],u=cum[i]/tot;U.push(u);O.push(vadd(q.h,vmul(q.d,q.r*(1-.03*(1-u)))));I.push(vadd(q.h,vmul(q.d,q.r*(1-(1-rin)*Math.pow(u,1.5)))))}
+  const EV=[],V_=(p,u,v)=>EV.push(p[0],p[1],p[2],u,v,1,al,0,0);for(let i=0;i<P.length-1;i++){V_(O[i],U[i],0);V_(I[i],U[i],1);V_(I[i+1],U[i+1],1);V_(O[i],U[i],0);V_(I[i+1],U[i+1],1);V_(O[i+1],U[i+1],0)}
+  FX.ev=EV;FX.rin=rin;return EV}
+ const fxKeep=o=>{const pb=W3HOST.PB;return !!(FX&&FX.tr&&o.mode==='ink'&&pb&&pb.on&&pb.idx>=FX.idx)};/* 먹 궤적: 타격이 끝나도 재생이 끝나거나 처음 키 쪽으로 돌아갈 때까지 남긴다 */
  function fxQuad(P,x0,y0,x1,y1){const q=[[x0,y0,0,0],[x1,y0,1,0],[x1,y1,1,1],[x0,y1,0,1]].map(([x,y,u,v])=>[P.bk(x,y),u,v]),EV=[];for(const i of[0,1,2,0,2,3]){const[p,u,v]=q[i];EV.push(p[0],p[1],p[2],u,v,1,0,0,0)}return EV}
- function fxRun(m,K,o,U,pL,nL,cL){const fls=o.mode==='flash';if(!FX||FX.idx!==o.idx||(fls&&!FX.S))FX=fxBuild(m,o);K.m=m;let EV,tx=false;
-  let cv=null;if(fls&&FX.S){EV=fxFlash(K);cv=fx2Paint(FX.S,o)}else{const r_=fxInk(K,o);if(!r_)return;cv=r_.cv;EV=fxQuad(FX.P,r_.x0,r_.y0,r_.x1,r_.y1)}{tx=true;gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
+ function fxRun(m,K,o,U,pL,nL,cL){const fls=o.mode==='flash';if(o.strike&&(!FX||FX.idx!==o.idx||(fls&&!FX.S)))FX=fxBuild(m,o);if(!FX)return;K.m=m;let EV,tx=true;
+  if(!fls){EV=fxInk(K,o);if(!EV)return;fxInkTex(FX.rin);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,fxitex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}else{EV=fxFlash(K);const cv=fx2Paint(FX.S,o);gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}
   if(!EV.length)return;const EA=new Float32Array(EV);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,EA,gl.DYNAMIC_DRAW);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}
-  gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-2);gl.uniform1f(U('flat_'),tx?5:2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND);
+  gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);/* 먹 궤적은 2D처럼 칼·몸 뒤로(살짝 뒤로 밀어 칼날이 먹 위에 보이게), 섬광은 앞으로 */fls?gl.polygonOffset(-2,-2):gl.polygonOffset(2,8);gl.uniform1f(U('flat_'),tx?5:2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND);
   if(tx){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.activeTexture(gl.TEXTURE0)}}
  function view(X,Y,s,W,H){const cs=Math.cos(W3HOST.VIEW.yaw),sn=Math.sin(W3HOST.VIEW.yaw),sq=W3HOST.VIEW.sq,uk=W3HOST.VIEW.uk,r=[cs,-sn,0],u=[-sn*sq,-cs*sq,uk],b=[sn*uk,cs*uk,sq],ax=2*s/W,ay=2*s/H,bx=2*X/W-1,by=1-2*Y/H,z=-1/2000;
   return[ax*r[0],ay*u[0],z*b[0],0, ax*r[1],ay*u[1],z*b[1],0, ax*r[2],ay*u[2],z*b[2],0, bx,by,0,1]}
@@ -800,7 +803,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.useProgram(prog);gl.enable(gl.DEPTH_TEST);gl.enableVertexAttribArray(hL);gl.bindBuffer(gl.ARRAY_BUFFER,vb);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}}
   gl.disableVertexAttribArray(iL);gl.vertexAttrib1f(iL,0);gl.disableVertexAttribArray(hL);gl.vertexAttrib4f(hL,0,0,0,0);
   // 섬광 궤적: 타격 키 동안만. 투명하게 섞고 깊이는 비교만(쓰지 않음) → 몸 뒤로 가면 가려진다
-  if(o.strike&&o.mode&&o.mode!=='none')fxRun(m,K,o,U,pL,nL,cL);else FX=null;
+  if(o.mode&&o.mode!=='none'&&(o.strike||fxKeep(o)))fxRun(m,K,o,U,pL,nL,cL);else FX=null;
   return true}
  // ─ 스키닝 렌더 ─
  let SKBAD='',XI=null,XF=false,VTU=0,skChecked=false,MESH=null,btex=null,insb=null,skb=null,BTD=null;
@@ -861,7 +864,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,ftex);gl.uniform1i(gl.getUniformLocation(eprog,'T'),0);gl.uniform2f(gl.getUniformLocation(eprog,'px'),1/w,1/h);gl.uniform1f(gl.getUniformLocation(eprog,'wo'),(o.wOut??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'wb'),(o.wBnd??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'BRU'),m.paint==='brush'?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BTR'),m.btrace?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BKS'),clamp(m.bink??.8,0,1));gl.uniform3fv(gl.getUniformLocation(eprog,'ink'),[.07,.065,.06]);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.drawArrays(gl.TRIANGLES,0,3);gl.disable(gl.BLEND);gl.disableVertexAttribArray(qL);gl.useProgram(prog);gl.enable(gl.DEPTH_TEST)}
   // 5) 섬광 궤적(주인공만): 스키닝 없이 그대로
   noSkin();gl.vertexAttrib1f(iL,0);gl.vertexAttrib4f(hL,0,0,0,0);
-  if(o.strike&&o.mode&&o.mode!=='none'){fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
+  if(o.mode&&o.mode!=='none'&&(o.strike||fxKeep(o))){fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
   lastStat={cpu:performance.now()-t0,bone:tbone,n:NI,verts:ME.cnt,nb:NB};return true}
  function show(on){const c=document.getElementById('gl3d2');if(c)c.hidden=!on;if(!on&&W3HOST.VIEW.sq<.2)W3HOST.VIEW.sq=.2;if(P3W!==on){P3W=on;patchPanel()}}/* 3D 월드2를 나가면 아래에서 보던 시점을 2D 범위로 되돌린다 */
 setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1안·2안·3안 제거, 조관 추가)는 2D에서도 처음부터 */
