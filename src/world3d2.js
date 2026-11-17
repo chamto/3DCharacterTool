@@ -287,9 +287,10 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    for(let k=0;k<=6;k++){const q=vadd(bt,[.3,lerp(-5.2,5.2,k/6)*bT,0]);TAG=3;tube(q,vadd(q,[0,0,-3]),.22,.22,INKL,.5);TAG=2}CB=BT_}
   // 칼집(허리 → 뒤 또는 앞으로): 통 + 끝 장식(쇠 마구리)
   if(m.sheath){const fr=m.sheathDir==='front',TOR=m.sheathAt==='torso',FL=m.sheathFlip?-1:1,ANG=clamp(+(m.sheathAng||0),-90,90)*Math.PI/180;/* TOR: 몸통에 붙임, FL: 반대쪽, ANG: 칼집 각도(위쪽 끝을 축으로 돌림. 반대쪽이어도 기본과 같은 방향으로 돈다) */
-   const MU=((uS-8)+(H0+6))/2;/* 몸통에 붙일 때 위쪽 끝 높이: 겨드랑이(uS−8)와 허리(H0+6) 중간 */
+   const MU=((uS-8)+(H0+6))/2;/* 몸통에 붙일 때 기준 높이: 겨드랑이(uS−8)와 허리(H0+6) 중간 */
    let top=TOR?(fr?[K.bend(MU)-2,10*bT,MU]:[K.bend(MU)-3,-11*bT,MU]):(fr?[K.bend(H0+5)-2,12*bT,H0+5]:[K.bend(H0+5)+5,-13*bT,H0+5]),tip=TOR?(fr?[K.bend(H0)-4,-15*bT,MU-34]:[K.bend(H0)-8,-12*bT,MU-36]):(fr?[-14,-18*bT,H0-32*bL]:[-16,-17*bT,H0-38]);
    top[1]*=FL;tip[1]*=FL;{const d=vsub(tip,top),c_=Math.cos(ANG),s_=Math.sin(ANG),SIDE_=!fr;tip=vadd(top,SIDE_?[d[0]*c_+d[2]*s_,d[1],-d[0]*s_+d[2]*c_]:[d[0],d[1]*c_-d[2]*s_,d[1]*s_+d[2]*c_])}/* 가로지름은 등판 면(앞뒤 축)으로, 옆구리 뒤로(허리·몸통)는 옆면(좌우 축)으로 돌린다 */
+   if(TOR){const dz=MU-vlerp(top,tip,1/3)[2];top=vadd(top,[0,0,dz]);tip=vadd(tip,[0,0,dz])}/* 몸통: 칼집을 3등분한 위쪽 1등분 자리가 겨드랑이와 허리 중간 높이(MU)에 오게 올린다 */
    {/* 겹침 방지: 칼집을 따라 표본 17개가 몸통·허리·엉덩이 단면, 치마(겉옷·미늘·톤렛, 지금 무릎 위치로 벌어진 모양), 허벅지 통 안(칼집 반지름+여유)에 들어가면 밀어낸다. 허리 쪽 표본이면 위쪽 끝을, 아니면 칼끝을 민다 */
     const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,COAT_=m.coat&&m.armor!=='jin',JIN_=m.armor==='jin',HUG=!!m.sheathHug,RS=2.6+(HUG?.05:1.5),SS=HUG?.2:1;/* 몸에 붙이기: 여유 없이, 먼저 몸 쪽으로 닿을 때까지 당긴 뒤 잘게 밀어낸다 */
     const SKD=TON?{u0:H0+5,g:1.4,cx:kc[0]*.5,rx:15.5*bT+1.2,ry:Math.max(17*bT,spread+8*LM)+1.2,hem:Math.max(H0-29*bL,kc[2]+1),sh:t=>1-(1-t)**1.8}:JIN_?{u0:H0+6,g:1.2,cx:kc[0]*.5,rx:13.5*bT,ry:Math.max(16.5*bT,spread+7*LM),hem:Math.max(H0-36*bL,kc[2]-9),sh:t=>t}:COAT_?{u0:H0+6,g:1.7,cx:kc[0]*.55,rx:12*bT+.8,ry:Math.max(15*bT,spread+6*LM),hem:Math.max(H0-22,kc[2]+6),sh:t=>t}:null;
