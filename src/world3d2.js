@@ -29,7 +29,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    else if(kd<1.5){/* 몸통: vh=(좌우 -1~1, 높이 0~1, 앞뒤). 앞 그림은 첫 칸, 뒤 그림은 옆 칸 */ts.y=512.;uv=vec2(vh.x*.5+.5,vh.y);if(vh.z<0.)og.x+=256.;}
    else{/* 구: vh=리벳 방향을 x축으로 한 좌표 → 앞 반구를 (y,z)로 눌러 편 그림 */vec3 n=normalize(vh.xyz);uv=n.yz*.5+.5;on=step(0.,n.x);}
    return og+clamp(uv,.5/ts,1.-.5/ts)*ts;}
- void main(){if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5),bd=0.;if(vh.w>9.5){float on_;vec2 px=floor(atpx(on_))+.5;bd=floor(texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs).b*255.+.5)*on_;}gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,(128.+bd)/255.,1.);return;}/* 번호 그림: 파랑 = 128 + 그림판 구역 번호(겹판 줄로 나뉜 띠). 겹판 줄을 경계선으로 그리게 한다 */if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
+ void main(){if(flat_>4.5){gl_FragColor=texture2D(ST,vn.xy);return;}if(flat_>3.5){vec3 g=mix(vc,vec3(.95,.93,.89),.55);gl_FragColor=vec4(g*.42,.42);return;}if(flat_>2.5){float k=floor(vid+.5),bd=0.;if(vh.w>9.5){float on_;vec2 px=floor(atpx(on_))+.5;bd=floor(texture2D(AT,(px+vec2(0.,ATs.y*.5))/ATs).b*255.+.5)*on_;}gl_FragColor=vec4(mod(k,256.)/255.,floor(k/256.)/255.,(128.+bd)/255.,1.);return;}/* 번호 그림: 파랑 = 128 + 그림판 구역 번호(겹판 줄로 나뉜 띠). 겹판 줄을 경계선으로 그리게 한다 */if(flat_>1.5){gl_FragColor=vec4(vc,clamp(vn.x,0.,1.));return;}vec3 nn=normalize(vn);if(flat_>.5){if(dot(nn,B)>0.)discard;gl_FragColor=vec4(ink,1.);return;}float d=dot(nn,L);
   vec3 base=vc;float txa=0.;if(vh.w>.5&&vh.w<1.5){float az=atan(vh.y,vh.x+1.);vec4 tx=texture2D(HT,vec2(.5+az/6.2832,(20.-vh.z)/34.));base=mix(base,tx.rgb,tx.a);txa=tx.a;}// 투구 상세 텍스처: 머리 국소 좌표로 방위각·높이를 구해 입힌다
   // 2D처럼 팔레트 그늘색·밝은색을 쓴다(판금은 모델 팔레트 값, 나머지는 바탕색에서 2D와 같은 비율로 만든다)
   /* 갑옷줄·리벳·테두리·띠·버클·멜빵·가슴 능선: 폴리곤도 수식도 아닌, 미리 구워 둔 그림판(AT)에서 읽는다. 꼬리표 w = 10 + 종류(0 통,1 몸통,2 구) + 3·칸 번호. dcK=먹선, dcB=바탕색 덮기(명암 받음), dcR=가슴 능선 */
@@ -705,7 +705,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  // 그 칼날들이 쓸고 가는 3D 띠를 지금 칼까지만 드러낸다. 칼끝 바깥으로 손가락처럼 갈라진 빛꼬리, 지금 칼날 앞에 밝은 섬광 머리.
  // 흰빛·옅은 노랑이 번갈아 깜빡이고, 노란빛 차례엔 손 쪽을 중심으로 6% 커진다(울렁임). 먹 궤적을 고르면 같은 띠를 먹색으로.
  let FX=null;const bladeOf=K=>{const mc=K.m&&K.m.style==='mech',g=vadd(K.hd,vmul(K.d,mc?5:4)),t=vadd(K.hd,vmul(K.d,bladeLen(K.m)));return{g,t}};
- function fxBuild(m,o){const SM=[];for(let q=0;q<=16;q++){const t=q/16,ps=mixK(P0(o.pk.pose),o.k.pose,t),dn=lerp(o.pk.down||0,o.k.down||0,t),K=m.style==='mech'?mechSkel(m,ps,dn):skel(m,ps,dn);K.m=m;SM.push(bladeOf(K))}return{idx:o.idx,SM}}
+ function fxBuild(m,o){const SM=[];for(let q=0;q<=16;q++){const t=q/16,ps=mixK(P0(o.pk.pose),o.k.pose,t),dn=lerp(o.pk.down||0,o.k.down||0,t),K=m.style==='mech'?mechSkel(m,ps,dn):skel(m,ps,dn);K.m=m;SM.push(bladeOf(K))}const R={idx:o.idx,SM};if(o.mode==='flash'){const P=fxPlane(SM);R.P=P;R.S=fx2Build(SM.map(e=>({h:P.pr(e.g),a:P.pr(e.t)})),o)}return R}
  function fxDraw(m,K,o){const EV=[],ink=o.mode==='ink',fl=((o.clock/(o.per||60))|0)%2,col=ink?[.12,.11,.1]:fl?[1,1,1]:[1,.96,.67],P=(p,a,c=col)=>EV.push(p[0],p[1],p[2],a,0,0,c[0],c[1],c[2]);// 효과는 꼬리표 0
   const cur=bladeOf(K),SM=FX.SM;let j=0,bd=1e9;for(let i=0;i<SM.length;i++){const d=vlen(vsub(SM[i].t,cur.t));if(d<bd){bd=d;j=i}}
   const pts=SM.slice(0,j+1).concat([cur]),n=pts.length;if(n<2)return EV;const sc=(!ink&&!fl)?1.06:1,ex=(e,k)=>{const g=e.g,t=e.t,d=vsub(t,g);return[vadd(g,vmul(d,.15*sc)),vadd(g,vmul(d,k*sc))]};
@@ -719,6 +719,63 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    // 섬광 머리: 지금 칼날 앞쪽으로 살짝 내민 밝은 띠
    if(n>=2){const pv=pts[n-2],mv=vsub(cur.t,pv.t),ml=vlen(mv);if(ml>1e-3){const fw=vmul(mv,1/ml),[g,t]=ex(cur,1.1),w=vlen(vsub(cur.t,cur.g))*.06*(o.glow||1.2),g2=vadd(g,vmul(fw,w*.5)),t2=vadd(t,vmul(fw,w));P(g,1);P(t,1);P(t2,.9);P(g,1);P(t2,.9);P(g2,.9)}}}
   return EV}
+ /* ─ 섬광 검기(3D, 2D 섬광 검기와 같은 방식) ─ docs/캐릭터툴_기술.md "2D 섬광 검기" 참고.
+    칼이 휘두르는 면을 평면(C, e1, e2)으로 잡고, 그 평면 좌표에서 2D와 같은 빌보드(바닥 = 끝 칼날, 양옆 경계, 손가락 꼬리, 빛줄기)를 만든다.
+    매 프레임 지금 칼선 뒤만 남긴 판 + 칼날 앞 섬광 머리를 캔버스에 그려 텍스처로 올리고, 평면 위 사각형 하나에 붙인다(깊이 비교로 몸 뒤는 가려짐). */
+ const FXK=1.4;let fxtex=null,fxcv=null;
+ function fxPlane(SM){const n0=SM.length;let C=[0,0,0],N=[0,0,0];for(const e of SM)C=vadd(C,vmul(vadd(e.g,e.t),.5/n0));
+  for(let i=0;i<n0-1;i++){const c=vadd(vcross(vsub(SM[i].t,SM[i].g),vsub(SM[i+1].t,SM[i].t)),vcross(vsub(SM[i].t,SM[i].g),vsub(SM[i+1].g,SM[i].g)));N=vdot(N,c)<0?vsub(N,c):vadd(N,c)}
+  const B=SM[n0-1],bl=vlen(vsub(B.t,B.g))||1,dB=vmul(vsub(B.t,B.g),1/bl);if(vlen(N)<bl*bl*.02){N=vcross(dB,[0,0,1]);if(vlen(N)<.2)N=vcross(dB,[0,1,0])}N=norm(N);
+  const e1=norm(vsub(dB,vmul(N,vdot(dB,N)))),e2=vcross(N,e1),pr=p=>{const q=vsub(p,C);return[vdot(q,e1)*FXK,vdot(q,e2)*FXK]},bk=(x,y)=>vadd(C,vadd(vmul(e1,x/FXK),vmul(e2,y/FXK)));return{C,N,e1,e2,pr,bk}}
+ const FXC=fl=>fl?[255,255,255]:[255,244,170];
+ function fx2Build(SM,o){/* SM: [{h,a}] 평면 좌표(손 쪽 = 코등이, a = 칼끝). 2D buildSweep과 같은 식 */
+  const A=SM[0],B=SM[SM.length-1],hA=A.h,tA=A.a,hB=B.h,tB=B.a,sub=(p,q)=>[p[0]-q[0],p[1]-q[1]],len=v=>Math.hypot(v[0],v[1])||1,cr=(u,v)=>u[0]*v[1]-u[1]*v[0],dt=(u,v)=>u[0]*v[0]+u[1]*v[1],nr=v=>{const l=len(v);return[v[0]/l,v[1]/l]};
+  const bd=nr(sub(tB,hB));let w=[-bd[1],bd[0]],side=0;for(const e of SM)side+=dt(sub(e.a,hB),w);if(side<0)w=[-w[0],-w[1]];
+  let d1=sub(hA,hB);d1=len(d1)<6||dt(nr(d1),w)<.15?w:nr(d1);
+  let T=tA,bt=-1e9;const d0=sub(tA,tB);for(const e of SM){const v=sub(e.a,tB);if(Math.hypot(v[0],v[1])<len(d0)*.15)continue;const th=-Math.atan2(cr(bd,v),dt(bd,v))*Math.sign(cr(bd,w));if(th>bt){bt=th;T=e.a}}
+  let d2=nr(sub(T,tB));if(dt(d2,w)<.15)d2=w;
+  let D=0;for(const e of SM)D=Math.max(D,dt(sub(e.a,hB),w),dt(sub(e.h,hB),w));D=Math.max(D,len(sub(tB,hB))*.15)*1.08;
+  const P1=[hB[0]+d1[0]*D/dt(d1,w),hB[1]+d1[1]*D/dt(d1,w)],P2=[tB[0]+d2[0]*(D-dt(sub(tB,hB),w))/dt(d2,w),tB[1]+d2[1]*(D-dt(sub(tB,hB),w))/dt(d2,w)];
+  const at=(t,v)=>{const L=[lerp(hB[0],P1[0],v),lerp(hB[1],P1[1],v)],R=[lerp(tB[0],P2[0],v),lerp(tB[1],P2[1],v)];return[lerp(L[0],R[0],t),lerp(L[1],R[1],t)]},TPOS=o.tailPos??0,TARC=o.tailArc??.5,TV=t=>TPOS+TARC*Math.sin(t*Math.PI);
+  const NF=clamp(Math.round(o.tailN||5),1,30),tail=[],L0=Math.max(.25,1.2-TPOS);for(let k=NF-1;k>=0;k--){const b0=k/NF,b1=(k+1)/NF,tm=(b0+b1)/2,hw=(b1-b0)/2*.84,root=TV(tm),ln=Math.max(TV(b0),TV(b1),root)+L0*(.6+.4*Math.sin(tm*Math.PI))+.03*Math.sin(k*2.3+1),tr=Math.min(.12,hw*1.5);
+   if(k===NF-1)tail.push(at(b1,TV(b1)));tail.push(at(tm+hw,ln-tr));for(let q=1;q<10;q++){const a=q/10*Math.PI;tail.push(at(tm+Math.cos(a)*hw,ln-tr+Math.sin(a)*tr))}tail.push(at(tm-hw,ln-tr),at(b0,TV(b0)))}
+  const poly=[hB,tB,...tail];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const bx=q=>{x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])};for(const q of poly)bx(q);for(const e of SM){bx(e.h);bx(e.a)}
+  /* 여백: 섬광 머리(칼날 앞으로 내밂)·빛무리·노란빛 차례 6% 확대가 들어가게 */const mg=len(sub(tB,hB))*.3+8;x0-=mg;y0-=mg;x1+=mg;y1+=mg;const W=x1-x0,H=y1-y0,RS=Math.min(2,1024/Math.max(W,H));
+  const imgs=[0,1].map(fl=>{const cv=document.createElement('canvas');cv.width=Math.max(2,Math.ceil(W*RS));cv.height=Math.max(2,Math.ceil(H*RS));const c=cv.getContext('2d');c.setTransform(RS,0,0,RS,-x0*RS,-y0*RS);const[r,g,b]=FXC(fl),rgba=a=>`rgba(${r},${g},${b},${a})`;
+   const shp=()=>{c.beginPath();poly.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath()};
+   const mid=[(hB[0]+tB[0])/2,(hB[1]+tB[1])/2],gr=c.createLinearGradient(mid[0],mid[1],mid[0]+w[0]*D*1.2,mid[1]+w[1]*D*1.2);gr.addColorStop(0,rgba(1));gr.addColorStop(.5,rgba(.85));gr.addColorStop(1,rgba(.45));c.lineJoin='round';shp();c.fillStyle=gr;c.fill();
+   /* 빛줄기: 같은 비율 t의 위쪽 점 → 바닥(끝 칼날) 쪽 */
+   c.save();shp();c.clip();c.lineCap='round';const sc=fl?'rgba(90,135,210,':'rgba(200,130,20,',rn=(k,q)=>{const x=Math.sin(k*12.9898+q*78.233+fl*3.1)*43758.5453;return x-Math.floor(x)},NS=Math.round(30*(o.den??1));
+   for(let k=0;k<NS;k++){const t=rn(k,11),v0=.12+rn(k,12)*.5,v1=v0+.25+rn(k,13)*.5,p0=at(t,v1),p1=at(t,v0),wd=k%3?.9+rn(k,14)*1.4:2.2+rn(k,15)*3,lg=c.createLinearGradient(p0[0],p0[1],p1[0],p1[1]);
+    lg.addColorStop(0,k%3?sc+'0)':'rgba(255,255,255,0)');lg.addColorStop(.7,k%3?sc+'.85)':'rgba(255,255,255,1)');lg.addColorStop(1,k%3?sc+'.5)':'rgba(255,255,255,.7)');c.strokeStyle=lg;c.lineWidth=wd;c.beginPath();c.moveTo(p0[0],p0[1]);c.lineTo(p1[0],p1[1]);c.stroke()}c.restore();return cv});
+  return{imgs,x0,y0,x1,y1,w:W,h:H,RS,A,B,cur:A,d1,d2,poly}}
+ function fx2Out(S,h,a,n,K,d1,d2){/* 2D sweepOutline과 같은 식: 판을 칼선에서 자르고 잘린 자리에 섬광 머리를 끼운다 */
+  const P=S.poly,sd=q=>(q[0]-h[0])*n[0]+(q[1]-h[1])*n[1]-.5,Q=[],cut=[];for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length],sp=sd(p),sq=sd(q);if(sp>=0)Q.push(p);if((sp>=0)!==(sq>=0)){const t=sp/(sp-sq);Q.push([p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t]);cut.push(Q.length-1)}}
+  const dx=a[0]-h[0],dy=a[1]-h[1],dl=Math.hypot(dx,dy)||1,ux=dx/dl,uy=dy/dl,M=[h[0]+dx*.5-n[0]*K*1.2,h[1]+dy*.5-n[1]*K*1.2],tq=dl*.28,head=[];
+  const bz=(p0,c1,c2,p3)=>{for(let k=1;k<=12;k++){const t=k/12,m_=1-t;head.push([m_*m_*m_*p0[0]+3*m_*m_*t*c1[0]+3*m_*t*t*c2[0]+t*t*t*p3[0],m_*m_*m_*p0[1]+3*m_*m_*t*c1[1]+3*m_*t*t*c2[1]+t*t*t*p3[1]])}};
+  head.push(h);bz(h,[h[0]-d1[0]*K,h[1]-d1[1]*K],[M[0]-ux*tq,M[1]-uy*tq],M);bz(M,[M[0]+ux*tq,M[1]+uy*tq],[a[0]-d2[0]*K,a[1]-d2[1]*K],a);
+  if(cut.length<2)return Q.length>2?{out:Q.concat(head.slice().reverse()),head}:{out:head,head};
+  const along=q=>(q[0]-h[0])*ux+(q[1]-h[1])*uy,i0=cut[0],i1=cut[1],X0=Q[i0],X1=Q[i1];let out;
+  if(i1===i0+1){const seg=along(X0)<=along(X1)?head:head.slice().reverse();out=Q.slice(0,i0+1).concat(seg,Q.slice(i1))}else{const seg=along(X1)<=along(X0)?head:head.slice().reverse();out=Q.concat(seg)}
+  return{out,head}}
+ function fx2Paint(S,o){/* 2D drawSweep + drawBladeGlow를 평면 캔버스에 한 장으로 */
+  const fl=((o.clock/(o.per||60))|0)%2;if(!fxcv)fxcv=document.createElement('canvas');const cw=S.imgs[0].width,ch=S.imgs[0].height;if(fxcv.width!==cw||fxcv.height!==ch){fxcv.width=cw;fxcv.height=ch}const c=fxcv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cw,ch);c.setTransform(S.RS,0,0,S.RS,-S.x0*S.RS,-S.y0*S.RS);
+  const h=S.cur.h,a=S.cur.a,dx=a[0]-h[0],dy=a[1]-h[1],dl=Math.hypot(dx,dy)||1,ux=dx/dl,uy=dy/dl;let nx=-uy,ny=ux;const tA=S.A.a;if(nx*(tA[0]-h[0])+ny*(tA[1]-h[1])<0){nx=-nx;ny=-ny}
+  const[r,g,b]=FXC(fl),K=dl*.07*1.35,d1=S.d1||[nx,ny],d2=S.d2||[nx,ny],O=fx2Out(S,h,a,[nx,ny],K,d1,d2),path=pts=>{c.beginPath();pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath()};
+  c.save();if(!fl){const P=S.B.h,k=1.06;c.translate(P[0],P[1]);c.scale(k,k);c.translate(-P[0],-P[1])}
+  const gk=o.glow??1.2;if(gk>1.001){path(fx2Out(S,h,a,[nx,ny],K*gk,d1,d2).head);c.fillStyle=`rgba(${r},${g},${b},.35)`;c.fill()}
+  c.save();path(O.out);c.clip();c.fillStyle=`rgba(${r},${g},${b},1)`;path(O.head);c.fill();c.drawImage(S.imgs[fl],S.x0,S.y0,S.w,S.h);c.restore();
+  c.strokeStyle=fl?'rgba(100,140,205,.6)':'rgba(200,140,30,.65)';c.lineWidth=1.6;c.lineJoin='round';c.lineCap='round';path(O.out);c.stroke();c.restore();
+  /* 칼날 번쩍임: 흰빛·옅은 노랑 세 겹 */
+  c.save();c.lineCap='round';for(const[wd,al] of[[16,.25],[9,.5],[4.5,.95]]){c.strokeStyle=`rgba(${r},${g},${b},${al})`;c.lineWidth=wd;c.beginPath();c.moveTo(h[0],h[1]);c.lineTo(a[0],a[1]);c.stroke()}c.strokeStyle=fl?'rgba(130,170,225,.7)':'rgba(220,170,50,.7)';c.lineWidth=1;c.beginPath();c.moveTo(h[0],h[1]);c.lineTo(a[0],a[1]);c.stroke();c.restore();return fxcv}
+ function fxFlash(K){const S=FX.S,P=FX.P,cur=bladeOf(K);S.cur={h:P.pr(cur.g),a:P.pr(cur.t)};const q=[[S.x0,S.y0,0,0],[S.x1,S.y0,1,0],[S.x1,S.y1,1,1],[S.x0,S.y1,0,1]].map(([x,y,u,v])=>[P.bk(x,y),u,v]),EV=[];
+  for(const i of[0,1,2,0,2,3]){const[p,u,v]=q[i];EV.push(p[0],p[1],p[2],u,v,1,0,0,0)}return EV}
+ function fxRun(m,K,o,U,pL,nL,cL){const fls=o.mode==='flash';if(!FX||FX.idx!==o.idx||(fls&&!FX.S))FX=fxBuild(m,o);K.m=m;let EV,tx=false;
+  if(fls&&FX.S){EV=fxFlash(K);tx=true;const cv=fx2Paint(FX.S,o);gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}else EV=fxDraw(m,K,o);
+  if(!EV.length)return;const EA=new Float32Array(EV);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,EA,gl.DYNAMIC_DRAW);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}
+  gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-2);gl.uniform1f(U('flat_'),tx?5:2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND);
+  if(tx){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.activeTexture(gl.TEXTURE0)}}
  function view(X,Y,s,W,H){const cs=Math.cos(W3HOST.VIEW.yaw),sn=Math.sin(W3HOST.VIEW.yaw),sq=W3HOST.VIEW.sq,uk=W3HOST.VIEW.uk,r=[cs,-sn,0],u=[-sn*sq,-cs*sq,uk],b=[sn*uk,cs*uk,sq],ax=2*s/W,ay=2*s/H,bx=2*X/W-1,by=1-2*Y/H,z=-1/2000;
   return[ax*r[0],ay*u[0],z*b[0],0, ax*r[1],ay*u[1],z*b[1],0, ax*r[2],ay*u[2],z*b[2],0, bx,by,0,1]}
  function render(m,pose,down,X,Y,s,W,H,DPR,o={}){if(!init())return false;if(m.style!=='knight'&&m.style!=='mech')return false;AW=o.wArm??1;HWK=1;const mk=JSON.stringify(m,(k,v)=>k==='bink'||k==='btrace'?undefined:v)/* 경계선 붓 설정은 겉면과 무관 */+'|'+AW+'|'+dstep()+'|'+dshape()+'|'+dgap()+'|'+ddir()+'|'+dov();/* 머리 배율은 없앰(눈·코·입·투구 눈 틈은 기본 크기 고정) */if(!o.old&&skOK()&&SKBAD!==mk){if(renderSk(m,pose,down,X,Y,s,W,H,DPR,o,mk))return true;SKBAD=mk}lastStat={cpu:0,bone:0,n:1,old:true};// 스키닝을 못 쓰면(확장 미지원·뼈 수 불일치) 예전 방식
@@ -739,8 +796,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.useProgram(prog);gl.enable(gl.DEPTH_TEST);gl.enableVertexAttribArray(hL);gl.bindBuffer(gl.ARRAY_BUFFER,vb);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}}
   gl.disableVertexAttribArray(iL);gl.vertexAttrib1f(iL,0);gl.disableVertexAttribArray(hL);gl.vertexAttrib4f(hL,0,0,0,0);
   // 섬광 궤적: 타격 키 동안만. 투명하게 섞고 깊이는 비교만(쓰지 않음) → 몸 뒤로 가면 가려진다
-  if(o.strike&&o.mode&&o.mode!=='none'){if(!FX||FX.idx!==o.idx)FX=fxBuild(m,o);K.m=m;const EV=fxDraw(m,K,o);if(EV.length){const EA=new Float32Array(EV);gl.bufferData(gl.ARRAY_BUFFER,EA,gl.DYNAMIC_DRAW);for(const[l,of] of[[pL,0],[nL,12],[cL,24]])gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of);
-   gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-2);gl.uniform1f(U('flat_'),2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND)}}else FX=null;
+  if(o.strike&&o.mode&&o.mode!=='none')fxRun(m,K,o,U,pL,nL,cL);else FX=null;
   return true}
  // ─ 스키닝 렌더 ─
  let SKBAD='',XI=null,XF=false,VTU=0,skChecked=false,MESH=null,btex=null,insb=null,skb=null,BTD=null;
@@ -801,8 +857,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,ftex);gl.uniform1i(gl.getUniformLocation(eprog,'T'),0);gl.uniform2f(gl.getUniformLocation(eprog,'px'),1/w,1/h);gl.uniform1f(gl.getUniformLocation(eprog,'wo'),(o.wOut??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'wb'),(o.wBnd??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'BRU'),m.paint==='brush'?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BTR'),m.btrace?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BKS'),clamp(m.bink??.8,0,1));gl.uniform3fv(gl.getUniformLocation(eprog,'ink'),[.07,.065,.06]);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.drawArrays(gl.TRIANGLES,0,3);gl.disable(gl.BLEND);gl.disableVertexAttribArray(qL);gl.useProgram(prog);gl.enable(gl.DEPTH_TEST)}
   // 5) 섬광 궤적(주인공만): 스키닝 없이 그대로
   noSkin();gl.vertexAttrib1f(iL,0);gl.vertexAttrib4f(hL,0,0,0,0);
-  if(o.strike&&o.mode&&o.mode!=='none'){if(!FX||FX.idx!==o.idx)FX=fxBuild(m,o);const EV=fxDraw(m,K0,o);if(EV.length){const EA=new Float32Array(EV);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,EA,gl.DYNAMIC_DRAW);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}
-   gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-2);gl.uniform1f(U('flat_'),2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}}else FX=null;
+  if(o.strike&&o.mode&&o.mode!=='none'){fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
   lastStat={cpu:performance.now()-t0,bone:tbone,n:NI,verts:ME.cnt,nb:NB};return true}
  function show(on){const c=document.getElementById('gl3d2');if(c)c.hidden=!on;if(!on&&W3HOST.VIEW.sq<.2)W3HOST.VIEW.sq=.2;if(P3W!==on){P3W=on;patchPanel()}}/* 3D 월드2를 나가면 아래에서 보던 시점을 2D 범위로 되돌린다 */
 setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1안·2안·3안 제거, 조관 추가)는 2D에서도 처음부터 */
