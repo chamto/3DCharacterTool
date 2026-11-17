@@ -286,9 +286,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    if(MS){const TP=[],BTm=[];for(let k=0;k<=6;k++){const y=lerp(-1,1,k/6);TP.push(vadd(tp,[.2*(1-y*y),y*4.6*bT,0]));BTm.push(vadd(bt,[.2*(1-y*y),y*5.2*bT,0]))}const RR=[0,1,2,3].map(j=>TP.map((q,k)=>vlerp(q,BTm[k],j/3)));CB=BT_;loft(RR,fc,{open:true,center:T(H0-10),two:{pb:(j,i)=>BTm[i],bb:BF,t:j=>j/3}})}
    for(let k=0;k<=6;k++){const q=vadd(bt,[.3,lerp(-5.2,5.2,k/6)*bT,0]);TAG=3;tube(q,vadd(q,[0,0,-3]),.22,.22,INKL,.5);TAG=2}CB=BT_}
   // 칼집(허리 → 뒤 또는 앞으로): 통 + 끝 장식(쇠 마구리)
-  if(m.sheath){const fr=m.sheathDir==='front',TOR=m.sheathAt==='torso',FL=m.sheathFlip?-1:1,ANG=clamp(+(m.sheathAng||0),-90,90)*Math.PI/180*FL;/* TOR: 몸통(등)에 붙임, FL: 반대쪽, ANG: 칼집 각도(위쪽 끝을 축으로 돌림) */
-   let top=TOR?(fr?[K.bend(uS)-2,10*bT,uS+3]:[K.bend(uS)-2,-9*bT,uS+3]):(fr?[K.bend(H0+5)-2,12*bT,H0+5]:[K.bend(H0+5)+5,-13*bT,H0+5]),tip=TOR?(fr?[K.bend(H0)-2,-13*bT,H0-12]:[K.bend(H0)-2,-11*bT,H0-14]):(fr?[-14,-18*bT,H0-32*bL]:[-16,-17*bT,H0-38]);
-   top[1]*=FL;tip[1]*=FL;{const d=vsub(tip,top),c_=Math.cos(ANG),s_=Math.sin(ANG),SIDE_=!fr&&!TOR;tip=vadd(top,SIDE_?[d[0]*c_+d[2]*s_,d[1],-d[0]*s_+d[2]*c_]:[d[0],d[1]*c_-d[2]*s_*FL*FL,d[1]*s_+d[2]*c_])}/* 등·가로지름은 등판 면(앞뒤 축)으로, 옆구리 뒤로는 옆면(좌우 축)으로 돌린다 */
+  if(m.sheath){const fr=m.sheathDir==='front',TOR=m.sheathAt==='torso',FL=m.sheathFlip?-1:1,ANG=clamp(+(m.sheathAng||0),-90,90)*Math.PI/180;/* TOR: 몸통에 붙임, FL: 반대쪽, ANG: 칼집 각도(위쪽 끝을 축으로 돌림. 반대쪽이어도 기본과 같은 방향으로 돈다) */
+   let top=TOR?(fr?[K.bend(uS)-2,10*bT,uS+3]:[K.bend(uS)-3,-11*bT,uS+1]):(fr?[K.bend(H0+5)-2,12*bT,H0+5]:[K.bend(H0+5)+5,-13*bT,H0+5]),tip=TOR?(fr?[K.bend(H0)-2,-13*bT,H0-12]:[K.bend(H0)-6,-12*bT,H0-12]):(fr?[-14,-18*bT,H0-32*bL]:[-16,-17*bT,H0-38]);
+   top[1]*=FL;tip[1]*=FL;{const d=vsub(tip,top),c_=Math.cos(ANG),s_=Math.sin(ANG),SIDE_=!fr;tip=vadd(top,SIDE_?[d[0]*c_+d[2]*s_,d[1],-d[0]*s_+d[2]*c_]:[d[0],d[1]*c_-d[2]*s_,d[1]*s_+d[2]*c_])}/* 가로지름은 등판 면(앞뒤 축)으로, 옆구리 뒤로(허리·몸통)는 옆면(좌우 축)으로 돌린다 */
    {/* 겹침 방지: 칼집을 따라 표본 17개가 몸통·허리·엉덩이 단면, 치마(겉옷·미늘·톤렛, 지금 무릎 위치로 벌어진 모양), 허벅지 통 안(칼집 반지름+여유)에 들어가면 밀어낸다. 허리 쪽 표본이면 위쪽 끝을, 아니면 칼끝을 민다 */
     const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,COAT_=m.coat&&m.armor!=='jin',JIN_=m.armor==='jin',HUG=!!m.sheathHug,RS=2.6+(HUG?.05:1.5),SS=HUG?.2:1;/* 몸에 붙이기: 여유 없이, 먼저 몸 쪽으로 닿을 때까지 당긴 뒤 잘게 밀어낸다 */
     const SKD=TON?{u0:H0+5,g:1.4,cx:kc[0]*.5,rx:15.5*bT+1.2,ry:Math.max(17*bT,spread+8*LM)+1.2,hem:Math.max(H0-29*bL,kc[2]+1),sh:t=>1-(1-t)**1.8}:JIN_?{u0:H0+6,g:1.2,cx:kc[0]*.5,rx:13.5*bT,ry:Math.max(16.5*bT,spread+7*LM),hem:Math.max(H0-36*bL,kc[2]-9),sh:t=>t}:COAT_?{u0:H0+6,g:1.7,cx:kc[0]*.55,rx:12*bT+.8,ry:Math.max(15*bT,spread+6*LM),hem:Math.max(H0-22,kc[2]+6),sh:t=>t}:null;
@@ -297,7 +297,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
      if(SKD&&q[2]<=SKD.u0&&q[2]>=SKD.hem-2){const t=clamp((SKD.u0-q[2])/(SKD.u0-SKD.hem),0,1),k=SKD.sh(t),v=K.lv(SKD.u0);if(inE(q,lerp(v.fo,SKD.cx,k),lerp(v.df+SKD.g,SKD.rx,k),lerp(v.rw+SKD.g,SKD.ry,k)))return true}
      for(const g of K.legs){const A=g.Hp,B=g.K,ab=vsub(B,A),tt=clamp(vdot(vsub(q,A),ab)/vdot(ab,ab),0,1),c_=vadd(A,vmul(ab,tt));if(vlen(vsub(q,c_))<(COAT_||TON?8:9.8)*LM+RS)return true}/* 허벅지 */
      return false};
-    const sg=top[1]<0?-1:1,BK=fr||TOR,dT=vmul(BK?[-.4,0,0]:vmul(norm([-.35,sg,0]),.4),SS),dP=vmul(BK?[-.4,0,0]:vmul(norm([-1,sg*.6,0]),.5),SS);/* 허리에 걸린 위쪽 끝은 조금만, 칼끝은 뒤(옆구리 뒤로는 뒤·바깥)로 */
+    const sg=top[1]<0?-1:1,BK=fr,FS=TOR&&!fr,dT=vmul(BK?[-.4,0,0]:vmul(norm([FS?-.15:-.35,sg,0]),.4),SS),dP=vmul(BK?[-.4,0,0]:vmul(norm(FS?[-.25,sg,0]:[-1,sg*.6,0]),.5),SS);/* 몸통 옆구리 뒤로: 왼쪽 옆구리(옆면)에 붙도록 옆으로 민다 *//* 허리에 걸린 위쪽 끝은 조금만, 칼끝은 뒤(옆구리 뒤로는 뒤·바깥)로 */
     if(HUG){const has=(a,b)=>{for(let i=a;i<=b;i++)if(inside(vlerp(top,tip,i/16)))return true;return false};for(let it=0;it<300&&!has(0,3);it++)top=vsub(top,dT);for(let it=0;it<400&&!has(4,16);it++)tip=vsub(tip,dP)}/* 위쪽 끝·칼끝을 각각 몸에 닿을 때까지 당긴다 */
     for(let it=0;it<800;it++){let hi=-1;for(let i=0;i<=16;i++)if(inside(vlerp(top,tip,i/16))){hi=i;break}if(hi<0)break;if(hi<=3)top=vadd(top,dT);else tip=vadd(tip,dP)}}
    tube(top,tip,2.6,2.1,p.sheath||le,.9);tube(vlerp(top,tip,.92),tip,2.25,1.75,st,.9);CB=BT_}
