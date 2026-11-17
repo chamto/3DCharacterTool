@@ -758,24 +758,32 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  function fxFlash(K){const S=FX.S,P=FX.P,cur=bladeOf(K);S.cur={h:P.pr(cur.g),a:P.pr(cur.t)};return fxQuad(P,S.x0,S.y0,S.x1,S.y1)}
  /* ─ 먹 궤적(3D, 2D 먹 궤적 모양) ─ 2D 먹 호 그림(먹색 초승달 + 종이색 결 세 줄)과 같은 모양을, 실제 칼 자취를 따라가는 3D 띠로 그린다.
     바깥 가장자리 = 칼끝 자취, 안쪽 가장자리 = 손에서 칼끝 쪽으로 반지름 비율 1-(1-rin)·u^1.5(u: 0 시작 → 1 지금 칼). 그래서 지금 칼날에 딱 붙는다.
-    무늬는 띠 좌표(u = 칼끝이 지나온 길이 비율, v = 바깥 0 → 안쪽 1)로 그린 텍스처(fxInkTex). 자취는 타격 동안 모두 모으고, 재생이 끝나거나 처음 키로 돌아갈 때까지 남긴다. */
+    무늬는 띠 좌표(u = 칼끝이 지나온 길이 비율, v = 바깥 0 → 안쪽 1)로 그린 텍스처(fxInkTex). 자취는 타격 첫 프레임부터 재생이 끝나거나 처음 키로 돌아갈 때까지(되돌아가는 동작 포함) 모은다. */
  let fxitex=null,fxikey='';
  function fxInkTex(rin){const key=rin.toFixed(2);if(fxitex&&fxikey===key)return fxitex;fxikey=key;const W=512,H=128,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');c.fillStyle='#12100e';c.fillRect(0,0,W,H);c.fillStyle='#f2eee4';
   const R=190,Ri=R*rin,inr=u=>R-(R-Ri)*Math.pow(u,1.5),outr=u=>R*(1-.03*(1-u)),band=(f0,w,u0,u1)=>{const top=[],bot=[];for(let x=Math.round(u0*W);x<=Math.round(u1*W);x+=2){const u=x/W,th=w/Math.max(1,outr(u)-inr(u))*H*.5;top.push([x,f0*H-th]);bot.push([x,f0*H+th])}if(top.length<2)return;c.beginPath();top.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));for(let i=bot.length-1;i>=0;i--)c.lineTo(bot[i][0],bot[i][1]);c.closePath();c.fill()};
   band(.08,4,.35,.97);band(.3,1.8,.5,.93);band(.55,1.3,.62,.9);
   if(!fxitex)fxitex=gl.createTexture();gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,fxitex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0);return fxitex}
- function fxInk(K,o){/* 반환: 꼭짓점 배열(꼬리표 flat_=5, n=(u,v,1), 색 자리 r에 불투명도) 또는 null */
-  const tr=FX.tr||(FX.tr=[]);if(o.strike){if(!tr.length){const s0=FX.SM[0];tr.push({h:s0.h,g:s0.g,t:s0.t})}/* 타격 첫 프레임: 시작 칼(앞 키 자세)을 첫 칸으로 */const cur=bladeOf(K),l=tr[tr.length-1];if(vlen(vsub(cur.t,l.t))>.3)tr.push({h:K.hd,g:cur.g,t:cur.t});FX.ev=null}
-  if(FX.ev!==undefined&&FX.ev!==null)return FX.ev;if(tr.length<2)return null;
-  /* 이웃 칸 사이를 손 둘레 각도로 잘게 나눠 곡선으로(프레임이 성겨도 둥근 호) */const P=[];for(let i=0;i<tr.length-1;i++){const A=tr[i],B=tr[i+1],dA=vsub(A.t,A.h),dB=vsub(B.t,B.h),rA=vlen(dA)||1,rB=vlen(dB)||1,ang=Math.acos(clamp(vdot(dA,dB)/(rA*rB),-1,1)),ns=Math.max(1,Math.ceil(ang/.06));for(let k=0;k<ns;k++){const f=k/ns,h=vlerp(A.h,B.h,f),d=norm(vlerp(vmul(dA,1/rA),vmul(dB,1/rB),f)),r=lerp(rA,rB,f),gr=lerp(vlen(vsub(A.g,A.h))/rA,vlen(vsub(B.g,B.h))/rB,f);P.push({h,d,r,gr,a:ang/ns})}}
-  {const L=tr[tr.length-1],d=vsub(L.t,L.h),r=vlen(d)||1;P.push({h:L.h,d:vmul(d,1/r),r,gr:vlen(vsub(L.g,L.h))/r,a:0})}
-  let span=0;for(const q of P)span+=q.a;if(span<.45)return null;const al=Math.min(1,span/.9),rin=clamp(P[P.length-1].gr,.1,.78);
-  const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+vlen(vsub(vadd(P[i].h,vmul(P[i].d,P[i].r)),vadd(P[i-1].h,vmul(P[i-1].d,P[i-1].r)))));const tot=cum[cum.length-1]||1;
-  const O=[],I=[],U=[];for(let i=0;i<P.length;i++){const q=P[i],u=cum[i]/tot;U.push(u);O.push(vadd(q.h,vmul(q.d,q.r*(1-.03*(1-u)))));I.push(vadd(q.h,vmul(q.d,q.r*(1-(1-rin)*Math.pow(u,1.5)))))}
-  const EV=[],V_=(p,u,v)=>EV.push(p[0],p[1],p[2],u,v,1,al,0,0);for(let i=0;i<P.length-1;i++){V_(O[i],U[i],0);V_(I[i],U[i],1);V_(I[i+1],U[i+1],1);V_(O[i],U[i],0);V_(I[i+1],U[i+1],1);V_(O[i+1],U[i+1],0)}
-  FX.ev=EV;FX.rin=rin;return EV}
- const fxKeep=o=>{const pb=W3HOST.PB;return !!(FX&&FX.tr&&o.mode==='ink'&&pb&&pb.on&&pb.idx>=FX.idx)};/* 먹 궤적: 타격이 끝나도 재생이 끝나거나 처음 키 쪽으로 돌아갈 때까지 남긴다 */
+ function fxInk(K,o){/* 반환: 꼭짓점 배열(꼬리표 flat_=5, n=(u,v,1), 색 자리 r에 불투명도) 또는 null.
+    자취는 타격 첫 프레임부터 재생이 끝날 때까지(타격 뒤 제자리로 돌아가는 동작 포함) 칼끝이 움직일 때마다 모은다.
+    칼이 도는 방향이 바뀌면(내려치고 되돌아감) 획을 나눠, 획마다 2D 먹 호처럼 끝(그 획의 마지막 칼)이 가장 두꺼운 초승달로 그린다. */
+  const tr=FX.tr||(FX.tr=[]);if(!tr.length){const s0=FX.SM[0];tr.push({h:s0.h,g:s0.g,t:s0.t})}/* 첫 칸: 시작 칼(앞 키 자세) */
+  {const cur=bladeOf(K),l=tr[tr.length-1];if(vlen(vsub(cur.t,l.t))>.3){tr.push({h:K.hd,g:cur.g,t:cur.t});FX.ev=null}}
+  if(FX.ev)return FX.ev;if(tr.length<2)return null;
+  const G=[];let REF=null;for(let i=0;i<tr.length-1;i++){const A=tr[i],B=tr[i+1],dA=vsub(A.t,A.h),dB=vsub(B.t,B.h),rA=vlen(dA)||1,rB=vlen(dB)||1,ang=Math.acos(clamp(vdot(dA,dB)/(rA*rB),-1,1)),ax=vcross(dA,dB);if(!REF&&ang>.05)REF=norm(ax);G.push({A,B,dA,dB,rA,rB,ang,ax})}
+  /* 획 나누기: 도는 방향(첫 큰 회전축 REF와의 부호)이 바뀌는 칸에서 새 획. 아주 작은 회전은 지금 획에 붙인다 */
+  const ST=[];let cur_=[],sg=0;for(const g of G){const s=(!REF||g.ang<.02)?0:(vdot(g.ax,REF)>=0?1:-1);if(s&&sg&&s!==sg){ST.push(cur_);cur_=[]}if(s)sg=s;cur_.push(g)}ST.push(cur_);
+  const EV=[];let rin=.1;for(const S of ST){if(!S.length)continue;const P=[];
+   /* 이웃 칸 사이를 손 둘레 각도로 잘게 나눠 곡선으로(프레임이 성겨도 둥근 호) */
+   for(const g of S){const ns=Math.max(1,Math.ceil(g.ang/.06));for(let k=0;k<ns;k++){const f=k/ns,h=vlerp(g.A.h,g.B.h,f),d=norm(vlerp(vmul(g.dA,1/g.rA),vmul(g.dB,1/g.rB),f)),r=lerp(g.rA,g.rB,f),gr=lerp(vlen(vsub(g.A.g,g.A.h))/g.rA,vlen(vsub(g.B.g,g.B.h))/g.rB,f);P.push({h,d,r,gr,a:g.ang/ns})}}
+   {const L=S[S.length-1].B,d=vsub(L.t,L.h),r=vlen(d)||1;P.push({h:L.h,d:vmul(d,1/r),r,gr:vlen(vsub(L.g,L.h))/r,a:0})}
+   let span=0;for(const q of P)span+=q.a;if(span<.3)continue;const al=Math.min(1,span/.9),ri=clamp(P[P.length-1].gr,.1,.78);rin=ri;
+   const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+vlen(vsub(vadd(P[i].h,vmul(P[i].d,P[i].r)),vadd(P[i-1].h,vmul(P[i-1].d,P[i-1].r)))));const tot=cum[cum.length-1]||1;
+   const O=[],I=[],U=[];for(let i=0;i<P.length;i++){const q=P[i],u=cum[i]/tot;U.push(u);O.push(vadd(q.h,vmul(q.d,q.r*(1-.03*(1-u)))));I.push(vadd(q.h,vmul(q.d,q.r*(1-(1-ri)*Math.pow(u,1.5)))))}
+   const V_=(p,u,v)=>EV.push(p[0],p[1],p[2],u,v,1,al,0,0);for(let i=0;i<P.length-1;i++){V_(O[i],U[i],0);V_(I[i],U[i],1);V_(I[i+1],U[i+1],1);V_(O[i],U[i],0);V_(I[i+1],U[i+1],1);V_(O[i+1],U[i+1],0)}}
+  if(!EV.length)return null;FX.ev=EV;FX.rin=rin;return EV}
+ const fxKeep=o=>{const pb=W3HOST.PB;return !!(FX&&FX.tr&&o.mode==='ink'&&pb&&pb.on&&pb.idx>=FX.idx)};/* 먹 궤적: 타격이 끝나도 재생이 끝나거나 처음 키 쪽으로 돌아갈 때까지 계속 칼 자취를 모으고 그린다 */
  function fxQuad(P,x0,y0,x1,y1){const q=[[x0,y0,0,0],[x1,y0,1,0],[x1,y1,1,1],[x0,y1,0,1]].map(([x,y,u,v])=>[P.bk(x,y),u,v]),EV=[];for(const i of[0,1,2,0,2,3]){const[p,u,v]=q[i];EV.push(p[0],p[1],p[2],u,v,1,0,0,0)}return EV}
  function fxRun(m,K,o,U,pL,nL,cL){const fls=o.mode==='flash';if(o.strike&&(!FX||FX.idx!==o.idx||(fls&&!FX.S)))FX=fxBuild(m,o);if(!FX)return;K.m=m;let EV,tx=true;
   if(!fls){EV=fxInk(K,o);if(!EV)return;fxInkTex(FX.rin);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,fxitex);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}else{EV=fxFlash(K);const cv=fx2Paint(FX.S,o);gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
