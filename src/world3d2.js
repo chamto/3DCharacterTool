@@ -137,6 +137,8 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 그림체 붓터치: 경계선 따라그리기(켜고 끄기). 3D 월드에서 붓터치일 때만 */
   {let pt='ink',bt=false;try{pt=W3HOST.proj.model.paint||'ink';bt=!!W3HOST.proj.model.btrace}catch(_){}const pb=pn.querySelector('button[data-act="mset"][data-k="paint"]'),ps=pb&&pb.parentNode,ob=document.getElementById('w3btr'),kk=String(bt);if(ob&&(!w3||pt!=='brush'||ob.dataset.k!==kk))ob.remove();
    if(w3&&ps&&pt==='brush'&&!document.getElementById('w3btr')){const g=document.createElement('div');g.id='w3btr';g.dataset.k=kk;g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">경계선 따라그리기</div><div class="seg">'+[['1','켜기 · 붓으로 경계선 긋기'],['0','끄기']].map(([v,l])=>'<button data-act="mbool" data-k="btrace" data-v="'+v+'" aria-pressed="'+((v==='1')===bt)+'">'+l+'</button>').join('')+'</div>';{/* 검은 붓터치 강도: 경계선 붓 획의 진하기·굵기 */const lb=document.createElement('label');lb.className='sl';lb.innerHTML='<span>검은 붓터치 강도</span><input type="range" min="0" max="1" step="0.05"><b></b>';const r=lb.querySelector('input'),bv=lb.querySelector('b');let v0=.8;try{v0=W3HOST.proj.model.bink??.8}catch(_){}r.value=String(v0);bv.textContent=(+v0).toFixed(2);r.oninput=e=>{e.stopPropagation();bv.textContent=(+r.value).toFixed(2);W3HOST.proj.model.bink=+r.value;W3HOST.wake(400)};r.onchange=()=>{try{W3HOST.commit()}catch(_){}};g.appendChild(lb)}ps.after(g)}}
+  /* 칼집 방향: '앞으로 가로질러'를 '뒤로 가로질러'로(값 front는 그대로, 3D에서는 등 뒤로 지난다) */
+  {const b=pn.querySelector('button[data-act="mset"][data-k="sheathDir"][data-v="front"]');if(b&&w3&&b.textContent!=='뒤로 가로질러')b.textContent='뒤로 가로질러'}
   /* 갑옷: 강철 치마(톤렛). 3D 월드에서만, 판금 갑옷일 때 */
   {let ar='plate',tn=false;try{ar=W3HOST.proj.model.armor||'plate';tn=!!W3HOST.proj.model.tonlet}catch(_){}const ot=document.getElementById('w3ton');if(ot&&(!w3||ar==='jin'))ot.remove();
    if(w3&&ar!=='jin'&&!document.getElementById('w3ton')){const anc=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='겉옷 (서코트)');const at=anc&&anc.nextElementSibling;if(at){const g=document.createElement('div');g.id='w3ton';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">강철 치마 (톤렛)</div><div class="seg">'+[['1','입음'],['0','없음']].map(([v,l])=>'<button data-act="mbool" data-k="tonlet" data-v="'+v+'" aria-pressed="'+((v==='1')===tn)+'">'+l+'</button>').join('')+'</div>';at.after(g)}}}
@@ -280,7 +282,17 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    if(MS){const TP=[],BTm=[];for(let k=0;k<=6;k++){const y=lerp(-1,1,k/6);TP.push(vadd(tp,[.2*(1-y*y),y*4.6*bT,0]));BTm.push(vadd(bt,[.2*(1-y*y),y*5.2*bT,0]))}const RR=[0,1,2,3].map(j=>TP.map((q,k)=>vlerp(q,BTm[k],j/3)));CB=BT_;loft(RR,fc,{open:true,center:T(H0-10),two:{pb:(j,i)=>BTm[i],bb:BF,t:j=>j/3}})}
    for(let k=0;k<=6;k++){const q=vadd(bt,[.3,lerp(-5.2,5.2,k/6)*bT,0]);TAG=3;tube(q,vadd(q,[0,0,-3]),.22,.22,INKL,.5);TAG=2}CB=BT_}
   // 칼집(허리 → 뒤 또는 앞으로): 통 + 끝 장식(쇠 마구리)
-  if(m.sheath){const fr=m.sheathDir==='front',top=fr?[K.bend(H0+5)+8*bT,12*bT,H0+5]:[K.bend(H0+5)+5,-13*bT,H0+5],tip=fr?[24*bT,-14*bT,H0-34*bL]:[-16,-17*bT,H0-38];tube(top,tip,2.6,2.1,p.sheath||le,.9);tube(vlerp(top,tip,.92),tip,2.25,1.75,st,.9);CB=BT_}
+  if(m.sheath){const fr=m.sheathDir==='front';let top=fr?[K.bend(H0+5)-2,12*bT,H0+5]:[K.bend(H0+5)+5,-13*bT,H0+5],tip=fr?[-14,-18*bT,H0-32*bL]:[-16,-17*bT,H0-38];
+   if(fr){/* 뒤로 가로질러: 허리 옆에서 등 뒤를 비스듬히 지나 반대쪽 아래로. 치마(겉옷·미늘·톤렛)·허리·다리 겉면 안으로 들어가는 표본이 있으면 칼집 전체를 뒤로 민다 */
+    const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,COAT_=m.coat&&m.armor!=='jin',JIN_=m.armor==='jin',RS=2.6+1.5;
+    const SKD=TON?{u0:H0+5,g:1.4,cx:kc[0]*.5,rx:15.5*bT+1.2,ry:Math.max(17*bT,spread+8*LM)+1.2,hem:Math.max(H0-29*bL,kc[2]+1),sh:t=>1-(1-t)**1.8}:JIN_?{u0:H0+6,g:1.2,cx:kc[0]*.5,rx:13.5*bT,ry:Math.max(16.5*bT,spread+7*LM),hem:Math.max(H0-36*bL,kc[2]-9),sh:t=>t}:COAT_?{u0:H0+6,g:1.7,cx:kc[0]*.55,rx:12*bT+.8,ry:Math.max(15*bT,spread+6*LM),hem:Math.max(H0-22,kc[2]+6),sh:t=>t}:null;
+    const ell=(q,cx,rx,ry,r)=>Math.abs(q[1])<ry+r?cx-(rx+r)*Math.sqrt(Math.max(0,1-(q[1]/(ry+r))**2)):1e9;/* 타원 단면 뒤쪽 겉면 x(칼집 반지름만큼 부풀림) */
+    const need=q=>{let x=1e9;{const u=clamp(q[2],H0-14,uS),v=K.lv(Math.min(u,H0+6));x=Math.min(x,ell(q,v.fo,v.df+1.4,v.rw+1.4,RS))}/* 허리·엉덩이 */
+     if(SKD&&q[2]<=SKD.u0&&q[2]>=SKD.hem-2){const t=clamp((SKD.u0-q[2])/(SKD.u0-SKD.hem),0,1),k=SKD.sh(t),v=K.lv(SKD.u0);x=Math.min(x,ell(q,lerp(v.fo,SKD.cx,k),lerp(v.df+SKD.g,SKD.rx,k),lerp(v.rw+SKD.g,SKD.ry,k),RS))}
+     for(const g of K.legs){const A=g.Hp,B=g.K,ab=vsub(B,A),tt=clamp(vdot(vsub(q,A),ab)/vdot(ab,ab),0,1),c_=vadd(A,vmul(ab,tt)),R_=(COAT_||TON?8:9.8)*LM+RS,dy=q[1]-c_[1],dz=q[2]-c_[2],h=R_*R_-dy*dy-dz*dz;if(h>0)x=Math.min(x,c_[0]-Math.sqrt(h))}/* 허벅지 */
+     return x};
+    let sh_=0;for(let i=0;i<=16;i++){const q=vlerp(top,tip,i/16),nx=need(q);if(q[0]-sh_>nx)sh_=q[0]-nx}top=vsub(top,[sh_,0,0]);tip=vsub(tip,[sh_,0,0])}
+   tube(top,tip,2.6,2.1,p.sheath||le,.9);tube(vlerp(top,tip,.92),tip,2.25,1.75,st,.9);CB=BT_}
   // 겉옷: 가슴 아래~허리 몸판 + 무릎까지 치마
   const COAT=m.coat&&m.armor!=='jin';if(COAT){const kc=vlerp(K.legs[0].K,K.legs[1].K,.5),spread=Math.abs(K.legs[0].K[1]-K.legs[1].K[1])/2,hemU=Math.max(H0-22,kc[2]+6);
    const sY=Math.max(15*bT,spread+6*LM),BHm=bone([[kc[0]*.55,0,hemU],[1,0,0],[0,sY,0],[0,0,1]]);// 치마 단 뼈: 무릎 위치·다리 벌림을 따라가는 단
