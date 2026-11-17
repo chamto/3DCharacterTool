@@ -491,6 +491,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    for(let k=0;k<3;k++)for(const r of[-.7,.7]){const u_=-12.4-1.75*k-1.1,a=9.9+1.05*k+.6,q=HL([CF+a+.1,r,u_]);tube(q,vadd(q,vmul(K.HR([1,0,0]),.15*hs)),.36,.36,INKL,.9)}TAG=2;/* 목 겹판 리벳 */CV.draw();
    if(cr_==='plume'||cr_==='horns')deco(RU+(cr_==='plume'?2.5:-2));HLOC=null;TAG=2;return}
   if(F==='jin'||F==='jin2'){const BU=3,BM=up&&F==='jin'&&dshape()>0;/* BM: 빵모·강시모(투구는 드림 내림 때 모델의 원래 사발 그대로, 드림만 말아 올림. 귀를 가리는 자락 없음) */ellip(HL,10.8,10,10.5,-1,BU,HC,0,Math.PI/2,{capB:true});
+   if(!(up&&F==='jin')&&MODE==='mesh'){/* 눈썹 판(2D jinDraw와 같은 모양): 사발 밑동 위 양쪽 눈 위로 솟은 금색 뚜껑 판. 사발 곡면을 따라 두께 .5로 떠 있는 판(부품 번호 따로 → 경계선) */
+    const BP=(r,u_,d)=>{const k=Math.sqrt(Math.max(0,1-((u_-BU)/10.5)**2)),Rr=Math.max(.1,10*k),x=-1+10.8*k*Math.sqrt(Math.max(0,1-(r/Rr)**2)),nn=norm([(x+1)/116.6,r/100,(u_-BU)/110.25]);return HL(vadd([x,r,u_],vmul(nn,d)))};
+    for(const sd of[-1,1]){const RW=[];for(let k=0;k<=6;k++){const r=sd*(1.2+k*1.05),u0=BU+.9,u1=BU+1.1+Math.sin(k/6*Math.PI)*1.6+(6-k)*.12+.9,US=[0,.25,.5,.75,1].map(t=>lerp(u0,u1,t));RW.push([...US.map(u_=>BP(r,u_,.6)),...US.slice().reverse().map(u_=>BP(r,u_,.08))])}loft(sd<0?RW.slice().reverse():RW,TC,{capB:true,capT:true})}}
    if(!up){face(true,true);// 드림 내림: 눈구멍을 실제로 뚫고, 안의 진짜 얼굴(눈 모양·눈썹·안대 설정 그대로)이 보이게
     jinDrim(HC,BU)}
    else{face(true,!BM);hairCap(!BM);/* 드림 올림: 귀는 그리지 않고, 귀 자리 구멍 없이 뒤통수 머리카락. 빵모는 귀를 보이게 한다 */if(F==='jin'&&BM){const hb_=HLOC;HLOC=null;/* 드림 올림(강시모·빵모): 사발은 원래 크기 그대로 두고, 드림을 말아 올려 사발 위에 겹친다 */
@@ -553,8 +556,8 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(F==='great'){KM=EK;band(-6.5,-1,2.3,1.2);band(1,6.5,2.3,1.2);KM=AW;vline(0,8,-11,.6,'rgba(29,26,23,.5)');KM=1;for(let r=2;r<=6;r+=1.3)for(let z=-4;z>=-8.5;z-=1.5)dot(r,z,.4);KM=AW;rivRow(-11,TC);ring(-11.8,.5,'rgba(29,26,23,.4)')}
   else if(F==='kettle'){rivRow(5.8,TC,.5,.45);ring(4.6,.5,'rgba(29,26,23,.45)')}
   else if(F==='jin'||F==='jin2'){ring(3.6,.95,TC);rivRow(3.6,INK,.45,.25);vline(0,4.2,13.4,.95,TC);
-   if(!up){// 눈썹판(금색) + 드림 앞 눈 틈(피부색과 눈)
-    if(KM>0)for(const sd of[-1,1]){c.fillStyle=TC;c.beginPath();for(let k=0;k<=6;k++){const r=sd*(1.2+k*1.05),z=3.9+(.2+Math.sin(k/6*Math.PI)*1.6+(6-k)*.12+.9)*Math.min(KM,2);k?c.lineTo(X(r,11),Y(z)):c.moveTo(X(r,11),Y(z))}for(let k=6;k>=0;k--){const r=sd*(1.2+k*1.05);c.lineTo(X(r,11),Y(3.9))}c.closePath();c.fill();c.strokeStyle=INK;c.lineWidth=.2*U;c.stroke()}
+   if(!up){// 드림 앞 눈 틈(피부색과 눈). 눈썹판은 이제 입체 판(helm의 금나라 투구)
+    if(false)for(const sd of[-1,1]){c.fillStyle=TC;c.beginPath();for(let k=0;k<=6;k++){const r=sd*(1.2+k*1.05),z=3.9+(.2+Math.sin(k/6*Math.PI)*1.6+(6-k)*.12+.9)*Math.min(KM,2);k?c.lineTo(X(r,11),Y(z)):c.moveTo(X(r,11),Y(z))}for(let k=6;k>=0;k--){const r=sd*(1.2+k*1.05);c.lineTo(X(r,11),Y(3.9))}c.closePath();c.fill();c.strokeStyle=INK;c.lineWidth=.2*U;c.stroke()}
     /* 드림 눈구멍은 이제 실제로 뚫고 안의 얼굴을 보여 준다(그림에는 그리지 않음) */}}
   else if(F==='parts'){const op=['open','nasal','cheek','close','kettle','joguan','jin','jin2','peak','closed'].includes(kit.face)||(['visor','mask'].includes(kit.face)&&kit.visor==='up'),Rw=12*(kit.width||1);if(kit.face==='peak'){if(kit.visor!=='up'){slit(5,15);breaths([-2,-4.5,-7],15);ridge(10,-12,15)}pivot(5.5)}else if(kit.face==='closed'){if(kit.visor!=='up'){slit(2.4,15);breaths([-3,-5.5,-8],15);ridge(5,-10,15)}pivot(3)}/* 뾰족·면갑 투구 얼굴: 그 투구와 같은 눈 틈·숨구멍·능선·축 */// 부품 조립 투구: 2D faceParts와 같은 눈 틈·숨구멍
    if(!op){KM=EK;const sl=kit.slit||'none';if(sl==='single'||sl==='cross')band(-7.5,7.5,2.5,1.35,INK,Rw);if(sl==='double'){band(-7.5,7.5,3.4,1,INK,Rw);band(-7.5,7.5,1.4,1,INK,Rw)}if(sl==='cross')vline(0,2.5,-7.5,1.2,INK,Rw);if(sl==='eyes'){band(-5.8,-1.4,2.6,1.25,INK,Rw);band(1.4,5.8,2.6,1.25,INK,Rw)}
