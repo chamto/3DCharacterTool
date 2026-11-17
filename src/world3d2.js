@@ -703,22 +703,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  function mechM(m,K){const K2=mechSkel(m,K.pose,K.down);K2.m=m;mechBody(m,K2);const sw=mechSword(m,K2);K.hd=K2.hd;K.d=K2.d;K.blade=K2.blade;K.mech=true}
  // ─ 섬광 궤적(3D): 타격을 시작할 때 앞 키 자세→타격 자세를 미리 따라가며 칼날(코등이→칼끝) 위치를 구해 두고,
  // 그 칼날들이 쓸고 가는 3D 띠를 지금 칼까지만 드러낸다. 칼끝 바깥으로 손가락처럼 갈라진 빛꼬리, 지금 칼날 앞에 밝은 섬광 머리.
- // 흰빛·옅은 노랑이 번갈아 깜빡이고, 노란빛 차례엔 손 쪽을 중심으로 6% 커진다(울렁임). 먹 궤적을 고르면 같은 띠를 먹색으로.
+ // 흰빛·옅은 노랑이 번갈아 깜빡이고, 노란빛 차례엔 손 쪽을 중심으로 6% 커진다(울렁임). 먹 궤적은 2D와 같은 먹 호 그림(fxInk). 둘 다 평면 캔버스 텍스처로 그린다(fxRun).
  let FX=null;const bladeOf=K=>{const mc=K.m&&K.m.style==='mech',g=vadd(K.hd,vmul(K.d,mc?5:4)),t=vadd(K.hd,vmul(K.d,bladeLen(K.m)));return{g,t}};
- function fxBuild(m,o){const SM=[];for(let q=0;q<=16;q++){const t=q/16,ps=mixK(P0(o.pk.pose),o.k.pose,t),dn=lerp(o.pk.down||0,o.k.down||0,t),K=m.style==='mech'?mechSkel(m,ps,dn):skel(m,ps,dn);K.m=m;SM.push(bladeOf(K))}const R={idx:o.idx,SM};if(o.mode==='flash'){const P=fxPlane(SM);R.P=P;R.S=fx2Build(SM.map(e=>({h:P.pr(e.g),a:P.pr(e.t)})),o)}return R}
- function fxDraw(m,K,o){const EV=[],ink=o.mode==='ink',fl=((o.clock/(o.per||60))|0)%2,col=ink?[.12,.11,.1]:fl?[1,1,1]:[1,.96,.67],P=(p,a,c=col)=>EV.push(p[0],p[1],p[2],a,0,0,c[0],c[1],c[2]);// 효과는 꼬리표 0
-  const cur=bladeOf(K),SM=FX.SM;let j=0,bd=1e9;for(let i=0;i<SM.length;i++){const d=vlen(vsub(SM[i].t,cur.t));if(d<bd){bd=d;j=i}}
-  const pts=SM.slice(0,j+1).concat([cur]),n=pts.length;if(n<2)return EV;const sc=(!ink&&!fl)?1.06:1,ex=(e,k)=>{const g=e.g,t=e.t,d=vsub(t,g);return[vadd(g,vmul(d,.15*sc)),vadd(g,vmul(d,k*sc))]};
-  for(let i=0;i<n-1;i++){const a0=(.2+.8*i/(n-1))*(ink?.5:.85),a1=(.2+.8*(i+1)/(n-1))*(ink?.5:.85),[g0,t0]=ex(pts[i],1.08),[g1,t1]=ex(pts[i+1],1.08);P(g0,a0);P(t0,a0);P(t1,a1);P(g0,a0);P(t1,a1);P(g1,a1)}
-  if(!ink){// 빛꼬리: 칼끝 바깥 가장자리에서 칼날 방향으로 뻗는 손가락(가운데가 가장 김)
-   // 섬광 빛줄기: 띠 안에서 칼날 위 같은 비율(f) 자리를 이어, 시작 쪽에서 지금 칼 쪽으로 흐르는 가는 줄기(2D와 같은 방향 규칙)
-   const NS=Math.round(30*(o.den??1)),rn=(k,q)=>{const x=Math.sin(k*12.9898+q*78.233+fl*3.1)*43758.5453;return x-Math.floor(x)};
-   for(let k=0;k<NS;k++){const f=.18+rn(k,1)*.9,i0=Math.floor(rn(k,2)*(n-1)*.7),i1=Math.min(n-1,i0+2+Math.floor(rn(k,3)*(n-1)*.6)),wd=vlen(vsub(pts[n-1].t,pts[n-1].g))*(k%3?.006:.014),sc_=k%3?(fl?[.4,.6,.9]:[.85,.55,.1]):[1,1,1];
-    for(let i=i0;i<i1;i++){const pa=vadd(pts[i].g,vmul(vsub(pts[i].t,pts[i].g),f*sc)),pb=vadd(pts[i+1].g,vmul(vsub(pts[i+1].t,pts[i+1].g),f*sc)),bn=vmul(norm(vsub(pts[i].t,pts[i].g)),wd),a0=(i-i0)/(i1-i0)*.9,a1=(i+1-i0)/(i1-i0)*.9;P(vsub(pa,bn),a0,sc_);P(vadd(pa,bn),a0,sc_);P(vadd(pb,bn),a1,sc_);P(vsub(pa,bn),a0,sc_);P(vadd(pb,bn),a1,sc_);P(vsub(pb,bn),a1,sc_)}}
-   const NF=Math.max(1,Math.min(30,Math.round(o.tailN||5))),TP=o.tailPos??0,TA=o.tailArc??.5;for(let k=0;k<NF;k++){const u0=k/NF,u1=(k+1)/NF,um=(u0+u1)/2,at=u=>{const x=u*(n-1),i=Math.min(n-2,Math.floor(x)),f=x-i;return{g:vlerp(pts[i].g,pts[i+1].g,f),t:vlerp(pts[i].t,pts[i+1].t,f)}},A=at(u0),B=at(u1),M=at(um),dA=ex(A,1.08)[1],dB=ex(B,1.08)[1],dir=norm(vsub(M.t,M.g)),L=vlen(vsub(M.t,M.g))*(.08+.45*TA*Math.sin(um*Math.PI))*(1.2-TP)/1.2,tip=vadd(ex(M,1.08)[1],vmul(dir,L)),al=.25+.5*um;P(dA,al);P(dB,al);P(tip,al*.3)}
-   // 섬광 머리: 지금 칼날 앞쪽으로 살짝 내민 밝은 띠
-   if(n>=2){const pv=pts[n-2],mv=vsub(cur.t,pv.t),ml=vlen(mv);if(ml>1e-3){const fw=vmul(mv,1/ml),[g,t]=ex(cur,1.1),w=vlen(vsub(cur.t,cur.g))*.06*(o.glow||1.2),g2=vadd(g,vmul(fw,w*.5)),t2=vadd(t,vmul(fw,w));P(g,1);P(t,1);P(t2,.9);P(g,1);P(t2,.9);P(g2,.9)}}}
-  return EV}
+ function fxBuild(m,o){const SM=[];for(let q=0;q<=16;q++){const t=q/16,ps=mixK(P0(o.pk.pose),o.k.pose,t),dn=lerp(o.pk.down||0,o.k.down||0,t),K=m.style==='mech'?mechSkel(m,ps,dn):skel(m,ps,dn);K.m=m;SM.push({...bladeOf(K),h:K.hd})}const P=fxPlane(SM),R={idx:o.idx,SM,P};if(o.mode==='flash')R.S=fx2Build(SM.map(e=>({h:P.pr(e.g),a:P.pr(e.t)})),o);return R}
  /* ─ 섬광 검기(3D, 2D 섬광 검기와 같은 방식) ─ docs/캐릭터툴_기술.md "2D 섬광 검기" 참고.
     칼이 휘두르는 면을 평면(C, e1, e2)으로 잡고, 그 평면 좌표에서 2D와 같은 빌보드(바닥 = 끝 칼날, 양옆 경계, 손가락 꼬리, 빛줄기)를 만든다.
     매 프레임 지금 칼선 뒤만 남긴 판 + 칼날 앞 섬광 머리를 캔버스에 그려 텍스처로 올리고, 평면 위 사각형 하나에 붙인다(깊이 비교로 몸 뒤는 가려짐). */
@@ -768,11 +755,28 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   c.strokeStyle=fl?'rgba(100,140,205,.6)':'rgba(200,140,30,.65)';c.lineWidth=1.6;c.lineJoin='round';c.lineCap='round';path(O.out);c.stroke();c.restore();
   /* 칼날 번쩍임: 흰빛·옅은 노랑 세 겹 */
   c.save();c.lineCap='round';for(const[wd,al] of[[16,.25],[9,.5],[4.5,.95]]){c.strokeStyle=`rgba(${r},${g},${b},${al})`;c.lineWidth=wd;c.beginPath();c.moveTo(h[0],h[1]);c.lineTo(a[0],a[1]);c.stroke()}c.strokeStyle=fl?'rgba(130,170,225,.7)':'rgba(220,170,50,.7)';c.lineWidth=1;c.beginPath();c.moveTo(h[0],h[1]);c.lineTo(a[0],a[1]);c.stroke();c.restore();return fxcv}
- function fxFlash(K){const S=FX.S,P=FX.P,cur=bladeOf(K);S.cur={h:P.pr(cur.g),a:P.pr(cur.t)};const q=[[S.x0,S.y0,0,0],[S.x1,S.y0,1,0],[S.x1,S.y1,1,1],[S.x0,S.y1,0,1]].map(([x,y,u,v])=>[P.bk(x,y),u,v]),EV=[];
-  for(const i of[0,1,2,0,2,3]){const[p,u,v]=q[i];EV.push(p[0],p[1],p[2],u,v,1,0,0,0)}return EV}
+ function fxFlash(K){const S=FX.S,P=FX.P,cur=bladeOf(K);S.cur={h:P.pr(cur.g),a:P.pr(cur.t)};return fxQuad(P,S.x0,S.y0,S.x1,S.y1)}
+ /* ─ 먹 궤적(3D, 2D 먹 궤적과 같은 방식) ─ 미리 그려 둔 먹 호 그림(휘두른 각도 40~180°×안쪽 비율 4종) 가운데 가장 가까운 장을 골라
+    손을 축으로 돌려 붙인다. 최근 170ms 칼 자취(손·코등이·칼끝)를 휘두르는 면 평면 좌표로 바꿔 쓰고, 캔버스에 그려 평면 위 사각형에 붙인다. */
+ const SL_SP=[40,70,100,140,180],SL_IN=[.1,.35,.6,.78],SL_R=190,SL_C=400;let SL_IMG=null;
+ function slMake(deg,rin){const cv=document.createElement('canvas');cv.width=cv.height=SL_C;const c=cv.getContext('2d');c.translate(SL_C/2,SL_C/2);
+  const sp=deg*Math.PI/180,a0=-sp/2,N=64,R=SL_R,Ri=R*rin,inr=u=>R-(R-Ri)*Math.pow(u,1.5),outr=u=>R*(1-.03*(1-u)),outer=[],inner=[];for(let k=0;k<=N;k++){const u=k/N,a=a0+sp*u;outer.push([Math.cos(a)*outr(u),Math.sin(a)*outr(u)]);inner.push([Math.cos(a)*inr(u),Math.sin(a)*inr(u)])}
+  c.fillStyle='#12100e';c.beginPath();outer.forEach((p,k)=>k?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));for(let k=N;k>=0;k--)c.lineTo(inner[k][0],inner[k][1]);c.closePath();c.fill();c.strokeStyle='#f2eee4';c.lineCap='round';
+  const band=(f0,w,u0,u1)=>{c.lineWidth=w;c.beginPath();let first=true;for(let k=Math.round(u0*N);k<=Math.round(u1*N);k++){const u=k/N,a=a0+sp*u,r=outr(u)-(outr(u)-inr(u))*f0,x=Math.cos(a)*r,y=Math.sin(a)*r;first?c.moveTo(x,y):c.lineTo(x,y);first=false}c.stroke()};
+  band(.08,4,.35,.97);band(.3,1.8,.5,.93);band(.55,1.3,.62,.9);return cv}
+ const wrapA=a=>{while(a>Math.PI)a-=6.2832;while(a<-Math.PI)a+=6.2832;return a};
+ function fxInk(K,o){/* 반환: {cv, x0,y0,x1,y1} 평면 좌표 사각형. 그릴 것이 없으면 null */
+  const P=FX.P,cur=bladeOf(K),tr=FX.tr||(FX.tr=[]);if(!tr.length){const s0=FX.SM[0];tr.push({c:o.clock-1,h:P.pr(s0.h),a:P.pr(s0.t),b:P.pr(s0.g)})}/* 타격 첫 프레임: 시작 칼(앞 키 자세)을 자취 첫 칸으로. 프레임이 느려도 휘두른 각도가 잡힌다 */tr.push({c:o.clock,h:P.pr(K.hd),a:P.pr(cur.t),b:P.pr(cur.g)});while(tr.length&&o.clock-tr[0].c>170)tr.shift();if(tr.length<2)return null;
+  const ang=e=>Math.atan2(e.a[1]-e.h[1],e.a[0]-e.h[0]),rad=(e,k)=>Math.hypot(e[k][0]-e.h[0],e[k][1]-e.h[1]);let span=0,rmax=0;for(let i=1;i<tr.length;i++)span+=wrapA(ang(tr[i])-ang(tr[i-1]));for(const e of tr)rmax=Math.max(rmax,rad(e,'a'));
+  const asp=Math.abs(span);if(asp<.45||rmax<20)return null;if(!SL_IMG)SL_IMG=SL_IN.map(r=>SL_SP.map(d=>slMake(d,r)));
+  const last=tr[tr.length-1],ratio=clamp(rad(last,'b')/Math.max(1,rad(last,'a')),0,.95),ri=SL_IN.reduce((b,v,k)=>Math.abs(v-ratio)<Math.abs(SL_IN[b]-ratio)?k:b,0),deg=Math.min(180,asp*180/Math.PI),ix=SL_SP.reduce((b,v,k)=>Math.abs(v-deg)<Math.abs(SL_SP[b]-deg)?k:b,0),sw=SL_SP[ix]*Math.PI/180,rot=ang(tr[0])+Math.sign(span)*sw/2,k_=rmax/SL_R;
+  const hx=last.h[0],hy=last.h[1],Rb=rmax*1.05+4,x0=hx-Rb,y0=hy-Rb,x1=hx+Rb,y1=hy+Rb,RS=Math.min(2,1024/(2*Rb));if(!fxcv)fxcv=document.createElement('canvas');const cw=Math.max(2,Math.ceil(2*Rb*RS));if(fxcv.width!==cw||fxcv.height!==cw){fxcv.width=cw;fxcv.height=cw}
+  const c=fxcv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cw,cw);c.setTransform(RS,0,0,RS,-x0*RS,-y0*RS);c.globalAlpha=Math.min(1,asp/.9);c.translate(hx,hy);c.rotate(rot);c.scale(k_,k_*Math.sign(span));c.drawImage(SL_IMG[ri][ix],-SL_C/2,-SL_C/2);c.globalAlpha=1;
+  return{cv:fxcv,x0,y0,x1,y1}}
+ function fxQuad(P,x0,y0,x1,y1){const q=[[x0,y0,0,0],[x1,y0,1,0],[x1,y1,1,1],[x0,y1,0,1]].map(([x,y,u,v])=>[P.bk(x,y),u,v]),EV=[];for(const i of[0,1,2,0,2,3]){const[p,u,v]=q[i];EV.push(p[0],p[1],p[2],u,v,1,0,0,0)}return EV}
  function fxRun(m,K,o,U,pL,nL,cL){const fls=o.mode==='flash';if(!FX||FX.idx!==o.idx||(fls&&!FX.S))FX=fxBuild(m,o);K.m=m;let EV,tx=false;
-  if(fls&&FX.S){EV=fxFlash(K);tx=true;const cv=fx2Paint(FX.S,o);gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
-   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}else EV=fxDraw(m,K,o);
+  let cv=null;if(fls&&FX.S){EV=fxFlash(K);cv=fx2Paint(FX.S,o)}else{const r_=fxInk(K,o);if(!r_)return;cv=r_.cv;EV=fxQuad(FX.P,r_.x0,r_.y0,r_.x1,r_.y1)}{tx=true;gl.activeTexture(gl.TEXTURE2);if(!fxtex)fxtex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fxtex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,cv);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(U('ST'),2);gl.activeTexture(gl.TEXTURE0)}
   if(!EV.length)return;const EA=new Float32Array(EV);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,EA,gl.DYNAMIC_DRAW);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}
   gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-2);gl.uniform1f(U('flat_'),tx?5:2);gl.drawArrays(gl.TRIANGLES,0,EA.length/9);gl.disable(gl.POLYGON_OFFSET_FILL);gl.depthMask(true);gl.disable(gl.BLEND);
   if(tx){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,stex);gl.activeTexture(gl.TEXTURE0)}}
