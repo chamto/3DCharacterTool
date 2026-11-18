@@ -921,7 +921,13 @@ setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1�
    for(const id of big){const img=new ImageData(new Uint8ClampedArray(d),N,N),e=img.data;for(let py=0;py<N;py++){const gy=Math.min(GW-1,py/G|0);for(let px=0;px<N;px++){const gx=Math.min(GW-1,px/G|0);if(L[gy*GW+gx]!==id)e[(py*N+px)*4+3]=0}}cap(()=>c.putImageData(img,0,0),t||undefined)}}
   return true};/* 부위 조각 넘기기: 모델 전체를 그린 뒤 조각마다 보이는 부분만 3D로 다시 그리고, 화면에서 끊어진 덩어리(3px 칸 연결, 12칸 이상)마다 따로 cap(그리기, 이름)에 넘긴다(가려져 여러 조각으로 보이는 몸통·칼도 덩어리마다 테두리·붓질) */
  const pieces=()=>{if(!MESH||!MESH.pf)return[];let v=0;return MESH.pf.map(([t,c])=>{const r=[t,v,c*3];v+=c*3;return r}).filter(r=>r[2]>0)};/* 부위 조각: [이름, 시작 꼭짓점, 개수] */
- return{render,show,init,clampPose,tipHand:(m,pose,down,d2)=>{/* 칼끝을 제자리에 두고 칼 방향을 d2로: 새 손 목표(pose.h) */const K=skel(m,pose,down||0),bL=(m.body||{}).leg??1,L_=pose.lean+(down||0)*14,dr=(down||0)*30+(pose.crouch??0),lgD=48-48*bL,BL=bladeLen(m),tp=vadd(K.hd,vmul(K.d,BL)),hd=vsub(tp,vmul(norm(d2),BL)),h2=hd[2]+dr+lgD;return[hd[0]-L_*(h2-48)/60,hd[1],h2]},hipPt:(m,pose,down,i)=>skel(m,pose,down||0).legs[i].Hp,legR:m=>50.8*((m.body||{}).leg??1)*.98,footPts:(m,pose,down)=>skel(m,pose,down||0).legs.map(g=>g.F),pieces,hints,eachPiece,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
+ return{render,show,init,clampPose,
+  /* 회전모드: 관절(고관절·어깨)을 축으로 돌린다. 가로 = 세로축 둘레로 돌리기, 세로 = 위아래로 들기(로드리게스 회전) */
+  legRot:(m,pose,down,i,dyw,dpt,free)=>{const K=skel(m,pose,down||0),g=K.legs[i],Hp=g.Hp,f0=(pose.feet||KDEF.feet)[i],yw=f0[3]||0,cy=Math.cos(dyw),sy=Math.sin(dyw);if(!free){const v=[f0[0]-Hp[0],f0[1]-Hp[1]];return[Hp[0]+v[0]*cy-v[1]*sy,Hp[1]+v[0]*sy+v[1]*cy,0,yw+dyw*180/Math.PI]}
+   let v=vsub(g.F,Hp);v=[v[0]*cy-v[1]*sy,v[0]*sy+v[1]*cy,v[2]];const vh=[v[0],v[1],0],ax=vlen(vh)>1?norm(vcross(vh,[0,0,1])):[0,-1,0],c=Math.cos(dpt),s_=Math.sin(dpt),kv=vcross(ax,v),kd=vdot(ax,v);v=vadd(vadd(vmul(v,c),vmul(kv,s_)),vmul(ax,kd*(1-c)));const t=vadd(Hp,v);return[t[0],t[1],Math.max(0,t[2]),yw+dyw*180/Math.PI]},
+  armRot:(m,pose,down,dyw,dpt)=>{const K=skel(m,pose,down||0),S=K.arms[1].S,bL=(m.body||{}).leg??1,L_=pose.lean+(down||0)*14,dr=(down||0)*30+(pose.crouch??0),lgD=48-48*bL,cy=Math.cos(dyw),sy=Math.sin(dyw),Z=v=>[v[0]*cy-v[1]*sy,v[0]*sy+v[1]*cy,v[2]];
+   let v=Z(vsub(K.hd,S)),d=Z(norm(pose.d));const vh=[v[0],v[1],0],ax=vlen(vh)>1?norm(vcross(vh,[0,0,1])):[0,-1,0],c=Math.cos(dpt),s_=Math.sin(dpt),R=w=>vadd(vadd(vmul(w,c),vmul(vcross(ax,w),s_)),vmul(ax,vdot(ax,w)*(1-c)));v=R(v);d=norm(R(d));const hd=vadd(S,v),h2=hd[2]+dr+lgD;return{h:[hd[0]-L_*(h2-48)/60,hd[1],h2],d}},
+  tipHand:(m,pose,down,d2)=>{/* 칼끝을 제자리에 두고 칼 방향을 d2로: 새 손 목표(pose.h) */const K=skel(m,pose,down||0),bL=(m.body||{}).leg??1,L_=pose.lean+(down||0)*14,dr=(down||0)*30+(pose.crouch??0),lgD=48-48*bL,BL=bladeLen(m),tp=vadd(K.hd,vmul(K.d,BL)),hd=vsub(tp,vmul(norm(d2),BL)),h2=hd[2]+dr+lgD;return[hd[0]-L_*(h2-48)/60,hd[1],h2]},hipPt:(m,pose,down,i)=>skel(m,pose,down||0).legs[i].Hp,legR:m=>50.8*((m.body||{}).leg??1)*.98,footPts:(m,pose,down)=>skel(m,pose,down||0).legs.map(g=>g.F),pieces,hints,eachPiece,stat:()=>lastStat,parts:()=>MESH&&MESH.parts,benchBones:(m,pose,N)=>{const t0=performance.now();for(let i=0;i<N;i++)bones(m,pose,0);return(performance.now()-t0)/N},ok:m=>m&&(m.style==='knight'||m.style==='mech')}})();
 setTimeout(()=>{try{if(W3HOST.WORLD==='2d')W3HOST.setWorld('3d2')}catch(e){console.warn(e)}},0);
 /* 화면을 위아래로 쓸어 넘길 때 손가락이 지나간 슬라이더 값이 바뀌지 않게: 터치가 가로로 8px 넘게 움직여야 슬라이더를 움직인 것으로 본다(세로로 먼저 움직이면 스크롤, 값은 그대로) */
 (()=>{let TS=null;try{const st=document.createElement('style');st.textContent='input[type=range]{touch-action:pan-y}';document.head.appendChild(st)}catch(_){}
@@ -931,7 +937,7 @@ setTimeout(()=>{try{if(W3HOST.WORLD==='2d')W3HOST.setWorld('3d2')}catch(e){conso
  const block=e=>{if(TS&&e.target===TS.r&&TS.m!==1&&e.isTrusted){e.stopImmediatePropagation();TS.r.value=TS.v}};window.addEventListener('input',block,true);window.addEventListener('change',block,true);
  const end=()=>{const s_=TS;setTimeout(()=>{if(TS===s_)TS=null},50)};window.addEventListener('touchend',end,{capture:true,passive:true});window.addEventListener('touchcancel',end,{capture:true,passive:true})})();/* 처음 열면 3D 월드로 시작한다 */
 /* 회전모드: 무대에서 고리를 한 번 눌러 고르고, 같은 고리를 한 번 더 누르면 회전모드(다시 누르면 끔, 빈 곳을 누르면 선택 해제).
-   회전모드에서 그 고리를 끌면 자리는 그대로 두고 방향만 바꾼다: 발 = 발끝 방향(가로로 끌기), 손 = 손은 제자리·칼 방향, 칼끝 = 칼끝은 제자리·칼 방향(가로 = 좌우로 돌리기, 세로 = 위아래로 세우기). 왼손은 회전 없음 */
+   회전모드에서 그 고리를 끌면 관절을 축으로 돌린다: 발 = 고관절 축으로 다리(발끝 방향도 함께), 손 = 어깨 축으로 팔(칼도 함께), 칼끝 = 칼끝은 제자리·칼 방향. 가로 = 세로축 둘레로 돌리기, 세로 = 위아래로 들기. 몸은 움직이지 않는다. 왼손은 회전 없음 */
 let W3SEL=null,W3ROT=null,W3TAP=null;
 {const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),norm=v=>{const l=Math.hypot(...v)||1;return v.map(x=>x/l)},hp=()=>{try{return W3HOST.WORLD==='3d2'&&!(W3HOST.PB&&W3HOST.PB.on)&&W3HOST.proj.model.style==='knight'}catch(_){return false}},hpos=(H,md)=>!H?null:md==='hand'?H.h:md==='tip'?H.a:md==='off'?H.off:md&&md.startsWith('foot')?(H.feet||[])[+md[4]]:null,
   near=p=>{const H=W3HOST.HANDLES;if(!H)return null;let best=null,bd=26;for(const md of['hand','tip','foot0','foot1','off']){const q=hpos(H,md);if(!q)continue;const d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(d<bd){bd=d;best=md}}return best},at=e=>{const r=document.getElementById('cv').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
@@ -940,7 +946,9 @@ let W3SEL=null,W3ROT=null,W3TAP=null;
  window.addEventListener('pointermove',e=>{let d=null;try{d=W3HOST.drag}catch(_){}if(!d||!W3ROT||d.mode!==W3ROT||!hp())return;e.stopImmediatePropagation();
   const p=at(e),dx=p[0]-d.x,dy=p[1]-d.y;d.x=p[0];d.y=p[1];d.moved+=Math.abs(dx)+Math.abs(dy);if(W3TAP&&Math.hypot(p[0]-W3TAP.x,p[1]-W3TAP.y)>5)W3TAP=null;W3HOST.wake(700);
   const P=W3HOST.proj,k=P.keys[P.sel],m=P.model;
-  if(W3ROT.startsWith('foot')){const i=+W3ROT[4],ft=(k.pose.feet||[[16,-8],[-16,9]]).map(f=>[f[0],f[1],f[2]||0,f[3]||0]);ft[i][3]=clamp(ft[i][3]-dx*.8,-150,150);k.pose.feet=ft;return}
+  const dyw=-dx*.012,dpt=-dy*.012;
+  if(W3ROT.startsWith('foot')){/* 발: 고관절을 축으로 다리를 돌림(발붙이기 모드면 땅 위에서 좌우로만). 발끝 방향도 함께 돈다 */const i=+W3ROT[4],ft=(k.pose.feet||[[16,-8],[-16,9]]).map(f=>[f[0],f[1],f[2]||0,f[3]||0]);ft[i]=R3D2.legRot(m,{...k.pose,feet:ft},k.down||0,i,dyw,dpt,W3HOST.opt.footMode!=='drop');ft[i][3]=clamp(ft[i][3],-150,150);k.pose.feet=ft;return}
+  if(W3ROT==='hand'){/* 손: 어깨를 축으로 팔을 돌림(칼도 함께) */const r=R3D2.armRot(m,k.pose,k.down||0,dyw,dpt);k.pose.h=r.h;k.pose.d=r.d;return}
   const dd=norm(k.pose.d);let az=Math.atan2(dd[1],dd[0]),el=Math.asin(clamp(dd[2],-1,1));az-=dx*.012;el=clamp(el-dy*.012,-1.55,1.55);const d2=[Math.cos(el)*Math.cos(az),Math.cos(el)*Math.sin(az),Math.sin(el)];
   if(W3ROT==='tip')k.pose.h=R3D2.tipHand(m,k.pose,k.down||0,d2);k.pose.d=d2},true);
  /* 표시: 고른 고리는 굵은 테, 회전모드면 둘레에 돌림 화살표와 '회전' 글자 */
