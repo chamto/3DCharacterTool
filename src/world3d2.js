@@ -167,9 +167,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 그림 탭 재료: '붓터치 (수채)' 추가(모델 탭 붓터치 수채 그림체로 그려진 모습을 그대로 그림으로). 3D 월드에서만 */
   {const mb=pn.querySelector('button[data-act="pt-opt"][data-k="medium"]');if(w3&&mb&&!pn.querySelector('button[data-act="pt-opt"][data-k="medium"][data-v="mbrush"]')){let md='';try{md=W3HOST.paint.popt.medium}catch(_){}const b=document.createElement('button');b.dataset.act='pt-opt';b.dataset.k='medium';b.dataset.v='mbrush';b.setAttribute('aria-pressed',String(md==='mbrush'));b.textContent='붓터치 (수채)';mb.parentNode.appendChild(b)}}
   const isModel=!!pn.querySelector('#mname');
-  /* 모델 탭: 무기 칸(없음·칼). 3D 월드의 모든 모델(판금 기사·로봇). m.wpn = 'none' | 'sword'(기본) */
-  {let st_='',wp='sword';try{st_=W3HOST.proj.model.style;wp=W3HOST.proj.model.wpn||'sword'}catch(_){}const okS=st_==='knight'||st_==='mech';/* 3D 월드에 나오는 모든 모델(판금 기사·로봇) */const ow=document.getElementById('w3wpn');if(ow&&(!w3||!isModel||!okS))ow.remove();
-   if(w3&&isModel&&okS&&!document.getElementById('w3wpn')){const g=document.createElement('section');g.className='grp';g.id='w3wpn';g.innerHTML='<h3>무기</h3><div class="seg">'+[['none','없음'],['sword','칼']].map(([v,l])=>'<button data-act="mset" data-k="wpn" data-v="'+v+'" aria-pressed="'+(wp===v)+'">'+l+'</button>').join('')+'</div>';const op=document.getElementById('w3opt');if(op)op.after(g);else pn.insertBefore(g,pn.firstChild)}}
+
   /* 모델 탭 맨 위: 3D 표시(3D 월드2에서만) */
   const old=document.getElementById('w3opt');if(old&&(!w3||!isModel))old.remove();
   if(w3&&isModel&&!document.getElementById('w3opt')){const g=document.createElement('section');g.className='grp';g.id='w3opt';g.innerHTML='<h3>3D 표시</h3><div class="sub">명암</div><div class="seg" id="w3sh"></div>';const sh=g.querySelector('#w3sh'),org=[...document.querySelectorAll('#shadesw button[data-shade]')];
@@ -193,7 +191,17 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    const om=document.getElementById('w3fxm'),fl_=tf==='flash'||tf==='both';if(om&&(!w3||!fl_||!tb))om.remove();
    if(w3&&fl_&&tb&&!document.getElementById('w3fxm')){const g=document.createElement('div');g.id='w3fxm';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">섬광 가림(3D 월드)</div><div class="row"></div>';const rw=g.querySelector('.row');
     for(const[k,nm]of[['fxCover','칼덮기'],['fxNoChar','캐릭터 안 가리기']]){const b=document.createElement('button');b.type='button';b.textContent=nm;b.setAttribute('aria-pressed',String(fxOpt(k)));b.onclick=()=>{const on=!fxOpt(k);try{W3HOST.opt[k]=on;W3HOST.LS.set('model-ed-opt',W3HOST.opt);W3HOST.wake(500)}catch(_){}b.setAttribute('aria-pressed',String(on))};rw.appendChild(b)}
-    tb.parentNode.after(g)}}}
+    tb.parentNode.after(g)}}
+  /* 모델 탭 안의 작은 탭: [모델 | 무기]. 무기 탭: 장착 왼손·오른손(없음·칼), 잡기 방식(한손·양손 왼손이 밑·양손 오른손이 밑). 다른 칸은 숨긴다 */
+  {let st_='',M={};try{M=W3HOST.proj.model;st_=M.style}catch(_){}const okS=st_==='knight'||st_==='mech',bar0=document.getElementById('w3mtab'),wp0=document.getElementById('w3wpn');
+   if(!w3||!isModel||!okS){if(bar0)bar0.remove();if(wp0)wp0.remove();for(const ch of pn.children)if(ch.dataset&&ch.dataset.w3h){ch.style.display='';delete ch.dataset.w3h}}
+   else{if(!bar0){const b=document.createElement('div');b.id='w3mtab';b.className='seg';b.setAttribute('role','tablist');for(const[v,l]of[['model','모델'],['weapon','무기']]){const x=document.createElement('button');x.type='button';x.dataset.v=v;x.setAttribute('role','tab');x.textContent=l;x.onclick=()=>{W3MTAB=v;patchPanel()};b.appendChild(x)}pn.insertBefore(b,pn.firstChild)}else if(pn.firstChild!==bar0)pn.insertBefore(bar0,pn.firstChild);
+    const bar=document.getElementById('w3mtab');for(const x of bar.children){x.setAttribute('aria-pressed',String(x.dataset.v===W3MTAB));x.setAttribute('aria-selected',String(x.dataset.v===W3MTAB))}
+    const W=wpnOf(M),key=st_+'|'+W.R+'|'+W.L+'|'+W.g;if(wp0&&wp0.dataset.k!==key)wp0.remove();
+    if(!document.getElementById('w3wpn')){const g=document.createElement('section');g.className='grp';g.id='w3wpn';g.dataset.k=key;const sg=(k,cur,opts)=>'<div class="seg">'+opts.map(([v,l])=>'<button data-act="mset" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(cur===v)+'">'+l+'</button>').join('')+'</div>';
+     g.innerHTML='<h3>무기</h3>'+(st_==='mech'?'':'<div class="sub">장착 왼손</div>'+sg('wpnL',W.L?'sword':'none',[['none','없음'],['sword','칼']]))+'<div class="sub">장착 오른손</div>'+sg('wpnR',W.R?'sword':'none',[['none','없음'],['sword','칼']])+(st_==='mech'?'':'<div class="sub">잡기 방식</div>'+sg('grip',W.g,[['one','한손'],['twoL','양손 (왼손이 밑)'],['twoR','양손 (오른손이 밑)']])+'<p class="note">양손 잡기는 칼이 한 손에만 있을 때 다른 손이 손잡이를 함께 쥡니다. 맨손이거나 한손 잡기면 무대에 왼손 고리가 생겨 두 손을 따로 움직일 수 있습니다.</p>');bar.after(g)}
+    const wp=document.getElementById('w3wpn');for(const ch of pn.children){if(ch===bar)continue;const show=W3MTAB==='weapon'?ch===wp:ch!==wp;if(!show){ch.style.display='none';ch.dataset.w3h='1'}else if(ch.dataset.w3h||ch===wp){ch.style.display='';delete ch.dataset.w3h}}}}}
+ var W3MTAB='model';
  /* 타격만 + 이 옵션: 타격 키가 끝나 다음 키로 넘어가면 먹 궤적을 지운다 */
  function inkClear(){try{return !!W3HOST.opt.inkClear}catch(_){return false}}
  /* 먹 궤적 그리는 범위: 'all' 타격 첫 프레임부터 되돌아가는 동작까지 칼 이동 전체(기본), 'strike' 타격 키 동안만(남기는 것은 같음) */
@@ -309,19 +317,24 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  // 몸통 틀: 높이 H0 원점, 위로 1 올라갈 때 앞으로 lean/60 밀림(2D bend와 같은 식)
  const torsoF=K=>{const H0=K.H0,s_=K.bend(H0+1)-K.bend(H0);return[[K.bend(H0),0,H0],[1,0,0],[0,1,0],[s_,0,1]]};
  // ─ 뼈대(2D와 같은 식) ─
+ /* 무기 설정: 장착 오른손·왼손(m.wpnR·m.wpnL = 'none'|'sword'), 잡기(m.grip = 'one' 한손 | 'twoL' 양손 왼손이 밑(기본) | 'twoR' 양손 오른손이 밑). 예전 m.wpn==='none'은 오른손 없음 */
+ const wpnOf=m=>{const R=(m.wpnR??(m.wpn==='none'?'none':'sword'))==='sword',L=m.wpnL==='sword',g=m.grip||'twoL';return{R,L,g,two:R!==L&&g!=='one',any:R||L}};
  const twA=(ax,p0,p1)=>{/* 기본 방향 p0에서 저장 방향 p1까지, 축 ax 둘레로 돈 각도 */const b=norm(ax),a0=vsub(p0,vmul(b,vdot(p0,b))),a1=vsub(p1,vmul(b,vdot(p1,b)));if(vlen(a0)<1e-4||vlen(a1)<1e-4)return 0;return Math.atan2(vdot(b,vcross(a0,a1)),vdot(a0,a1))};
  function skel(m,pose,down){const bd=m.body||{},bT=bd.torso??1,LM=bd.limb??1,bL=bd.leg??1,bS=bd.shoulder??1,hs=bd.head??1,bN=bd.neck??1,legDrop=48-48*bL;
   const feet=pose.feet||KDEF.feet,crouch=pose.crouch??0,elb=pose.elb??0,nod=pose.nod??0,L=pose.lean+(down||0)*14,drop=(down||0)*30+crouch+((()=>{/* 발 고리를 다리 닿는 거리보다 멀리 끌면 다리를 늘이지 않고 골반을 그만큼 낮춘다(넓은 보폭 = 낮은 자세). 수평 거리는 다리 길이의 95%까지 */const LL=50.8*bL,h0=48*bL-((down||0)*30+crouch);let hm=h0;for(let i=0;i<2;i++){const sd=i?1:-1,dh=Math.min(LL*.95,Math.hypot(feet[i][0],feet[i][1]-sd*9*bT));hm=Math.min(hm,Math.sqrt(LL*LL-dh*dh))}const nd=Math.max(0,h0-hm);return footMode()==='drop'?nd:0/* 발차기 모드: 몸은 제자리에 고정(골반을 낮추지 않음) */})()),H0=48*bL-drop,bend=u=>L*(u-H0)/60,T=u=>[bend(u),0,u],uS=H0+40;
   const legs=[0,1].map(i=>{const side=i?1:-1,Hp=[0,side*9*bT,H0],F=(()=>{const f=[feet[i][0],feet[i][1],0],dx=f[0]-Hp[0],dy=f[1]-Hp[1],dh=Math.hypot(dx,dy),LL=50.8*bL,mx=Math.sqrt(Math.max(0,LL*LL-H0*H0)),fz=footMode()==='free'?Math.max(0,feet[i][2]||0):0;if(fz>0){/* 발차기 모드: 발을 들면(높이 fz) 다리만 자유롭게 3D 목표로, 닿는 구(다리 길이 98%) 밖이면 구 위까지 */const t=[f[0],f[1],fz],v=vsub(t,Hp),l=vlen(v),R=LL*.98;return l>R?vadd(Hp,vmul(v,R/l)):t}if(!(dh>mx&&dh>1e-6))return f;return[Hp[0]+dx*mx/dh,Hp[1]+dy*mx/dh,0]})(),/* 발 고리를 다리 길이보다 멀리 끌어도 다리가 늘어나지 않게: 위에서 골반을 낮춰 닿게 하고, 그래도 넘으면(다리 길이 95% 밖) 닿는 거리까지만 */K=ik2(Hp,F,25.5*bL,25.5*bL,feet[i].length>6?[feet[i][4],feet[i][5],feet[i][6]]:[1,side*.45,0])/* 무릎 방향: feet[i][4..6](×100, 회전모드로 다리를 통째로 돌리면 함께 돈다) */,tw=feet[i].length>6?twA(vsub(K,Hp),[1,side*.45,0],[feet[i][4],feet[i][5],feet[i][6]]):0/* 허벅지 자신이 비틀린 각도 */,toe=(()=>{const a=Math.atan2(side*.32,1)+(feet[i][3]||0)*Math.PI/180;return[Math.cos(a),Math.sin(a),0]})()/* 발끝 방향: feet[i][3] = 돌린 각도(도, 회전모드) */,A=vadd(F,[0,0,5]);return{side,Hp,K,F,A,toe,tw}});
-  const d=norm(pose.d);let hd=[pose.h[0]+L*(pose.h[2]-48)/60,pose.h[1],pose.h[2]-drop-legDrop],off=vsub(hd,vmul(d,10));
-  {const RCH=44.8,SH=[[bend(uS),-16*bS,uS],[bend(uS),16*bS,uS]],ex=(S,P)=>{const v=vsub(P,S),l=vlen(v);return l>RCH?vmul(v,(RCH-l)/l):[0,0,0]};for(let it=0;it<4;it++){const e1=ex(SH[1],hd);hd=vadd(hd,e1);off=vadd(off,e1);const e0=ex(SH[0],off);hd=vadd(hd,e0);off=vadd(off,e0)}}/* 손 고리를 팔 길이보다 멀리 끌어도 팔이 늘어나지 않게: 두 손(칼 쥔 간격 그대로)을 어깨에서 닿는 거리 안으로 함께 당긴다 */
+  const d=norm(pose.d),WP=wpnOf(m),po_=pose.off||KDEF.off;let hd=[pose.h[0]+L*(pose.h[2]-48)/60,pose.h[1],pose.h[2]-drop-legDrop],off=[po_[0]+L*(po_[2]-48)/60,po_[1],po_[2]-drop-legDrop];
+  /* 무기·잡기: 칼이 한 손에만 있고 양손 잡기면 다른 손이 손잡이를 함께 쥔다(손잡이 위·아래 간격 10). 양손 왼손이 밑 = 오른손이 위(코등이 쪽). 그 밖(한손·양손 다 칼·맨손)은 왼손도 따로(pose.off) */
+  if(WP.two){if(WP.R){off=WP.g==='twoL'?vsub(hd,vmul(d,10)):vadd(hd,vmul(d,10))}else{hd=WP.g==='twoL'?vadd(off,vmul(d,10)):vsub(off,vmul(d,10))}}
+  {const RCH=44.8,SH=[[bend(uS),-16*bS,uS],[bend(uS),16*bS,uS]],ex=(S,P)=>{const v=vsub(P,S),l=vlen(v);return l>RCH?vmul(v,(RCH-l)/l):[0,0,0]};if(WP.two){for(let it=0;it<4;it++){const e1=ex(SH[1],hd);hd=vadd(hd,e1);off=vadd(off,e1);const e0=ex(SH[0],off);hd=vadd(hd,e0);off=vadd(off,e0)}}else{hd=vadd(hd,ex(SH[1],hd));off=vadd(off,ex(SH[0],off))}}
+  const hdS=WP.two?(WP.g==='twoL'?hd:off):WP.R?hd:WP.L?off:null,hdS2=WP.R&&WP.L?off:null,d2=[d[0],-d[1],d[2]];/* 칼 쥔 자리(손잡이 위쪽 손). 양손에 다 칼이면 왼손 칼은 좌우 거울 방향 *//* 손 고리를 팔 길이보다 멀리 끌어도 팔이 늘어나지 않게: 두 손(칼 쥔 간격 그대로)을 어깨에서 닿는 거리 안으로 함께 당긴다 */
   const arms=[0,1].map(i=>{const side=i?1:-1,S=[bend(uS),side*16*bS,uS],Hn=i?hd:off,po=pose.off,E=ik2(S,Hn,23,22,i&&po&&po.length>5?[po[3],po[4],po[5]]:[-.35,side*(.7+elb*.8),-.8]),tw=i&&po&&po.length>5?twA(vsub(E,S),[-.35,side*(.7+elb*.8),-.8],[po[3],po[4],po[5]]):0;/* 칼 쥔 팔 팔꿈치 방향: pose.off[3..5](×100, 회전모드로 팔을 통째로 돌리면 함께 돈다). tw = 상박 자신이 비틀린 각도 */return{side,S,E,Hn,tw}});
   const nA=nod*.6,hyw=pose.hyaw??0,hrl=pose.hroll??0,head=vadd(T(uS+18*bN),[nod*5,0,-nod*3]),cP=Math.cos(nA),sP=Math.sin(nA),cY=Math.cos(hyw),sY=Math.sin(hyw),cR=Math.cos(hrl),sR=Math.sin(hrl);
   const HR=v=>{const[f,r,u]=v,r1=r*cR-u*sR,u1=r*sR+u*cR,f2=f*cP+u1*sP,u2=u1*cP-f*sP;return[f2*cY-r1*sY,f2*sY+r1*cY,u2]},HL=v=>vadd(head,HR(vmul(v,hs)));
   // 몸통 단면(2D lv와 같은 식)
   const lv=u=>{const w0=H0+6,top=uS+2;if(u>=w0){const k=clamp((u-w0)/(top-w0),0,1);return{rw:lerp(11.5,15.5,k)*bT,df:lerp(7.8,10.4,Math.sin(k*Math.PI*.5))*bT,fo:bend(u)+k*1.5}}const k=clamp((w0-u)/14,0,1);return{rw:lerp(11.5,14.2,k)*bT,df:lerp(7.8,9.8,k)*bT,fo:bend(w0)}};
   const ring=(u,g=0,n=20)=>{const v=lv(u),a=[];for(let k=0;k<n;k++){const t=k/n*6.2832;a.push([v.fo+Math.cos(t)*(v.df+g),Math.sin(t)*(v.rw+g),u])}return a};
-  return{bT,LM,bL,hs,legs,arms,hd,d,off,H0,uS,T,bend,head,HR,HL,lv,ring}}
+  return{bT,LM,bL,hs,legs,arms,hd,d,off,hdS,hdS2,d2,WP,H0,uS,T,bend,head,HR,HL,lv,ring}}
  // ─ 판금 기사 ─
  function knight(m,K,pose){const p=m.pal||{},st=p.steel||'#d9dee0',cl=p.cloth||'#3d4f9a',tr=p.trim||'#c9a24a',le=p.leather||'#5a3e2a',sk=p.skin||'#e8d2b4',gl_=p.glove||st,beltC=p.belt||le,{bT,LM,bL,H0,uS,T,ring,HL,hs}=K,psz=m.psize||1;
   // 몸통: 골반 아래(H0-7)부터 어깨(uS+2)까지 2D와 같은 단면을 촘촘히 이어 붙인다
@@ -722,14 +735,15 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   if(m.crest==='fin')boxAB(vadd(hd_,vmul(u,6.5*hs)),vadd(hd_,vmul(u,15*hs)),4*hs,.6,p.trim||'#2f5d8a',f);
   if(m.capeOn){const SL=K.arms[0].S,SR=K.arms[1].S,hemU=Math.max(4,H0*.1),q=[vadd(SL,[-4.5,-1.5,3]),vadd(SR,[-4.5,1.5,3]),[K.bend(hemU)-17,26*bT,hemU],[K.bend(hemU)-17,-26*bT,hemU]],R=[];CB=bone(torsoF(K));const BCh=bone([[K.bend(hemU)-17,0,hemU],[1,0,0],[0,1,0],[0,0,1]]);/* 망토: 윗단은 몸통 뼈, 아랫단은 단 뼈, 사이는 섞음 */
    if(MODE==='mesh'){const TP=[],BT2=[],off=i=>[-Math.sin(i/8*Math.PI*4)*1.2,0,0];for(let i=0;i<=8;i++){TP.push(vlerp(q[0],q[1],i/8));BT2.push(vlerp(q[3],q[2],i/8))}for(let j=0;j<=6;j++){const t=j/6,a=[];for(let i=0;i<=8;i++)a.push(vadd(vlerp(TP[i],BT2[i],t),vmul(off(i),t)));R.push(a)}TAG=0;loft(R,p.mcape||'#283a6b',{open:true,center:T(H0+20),two:{pa:(j,i)=>TP[i],pb:(j,i)=>vadd(BT2[i],off(i)),bb:BCh,t:j=>j/6}});TAG=2}}/* 망토: 주름진 천 면 */}
+ const swords=(m,K)=>{if(K.hdS)sword(m,{...K,hd:K.hdS});if(K.hdS2)sword(m,{...K,hd:K.hdS2,d:K.d2})};
  function mechSword(m,K){if(!K.sword)return null;const p=m.pal||{},d=K.d,hd=K.hd,mech=K.mech,pom=vsub(hd,vmul(d,mech?17:14)),guard=vadd(hd,vmul(d,mech?5:4)),tip=vadd(hd,vmul(d,K.blade));let gv=vcross(d,[0,0,1]);if(vlen(gv)<.2)gv=[0,1,0];gv=norm(gv);
   seg(pom,guard,1.6,1.6,p.leather||p.dark||'#5a3e2a');ball(pom,2.6,2.6,2.6,p.trim||'#c9a24a');boxAB(vsub(guard,vmul(gv,0)),vadd(guard,vmul(d,2.4)),mech?10:8,1.6,p.trim||'#7d878d',gv);boxAB(guard,tip,mech?3.2:2.4,.6,p.blade||'#dfe3e4',gv);return{guard,tip}}
 
- function mechM(m,K){const K2=mechSkel(m,K.pose,K.down);K2.m=m;mechBody(m,K2);if(MODE==="mesh")SWPID=PID;const sw=m.wpn==='none'?null:mechSword(m,K2);/* 무기: 없음이면 칼을 만들지 않는다(두 모드 같음) */K.hd=K2.hd;K.d=K2.d;K.blade=K2.blade;K.mech=true}
+ function mechM(m,K){const K2=mechSkel(m,K.pose,K.down);K2.m=m;mechBody(m,K2);if(MODE==="mesh")SWPID=PID;const sw=!wpnOf(m).R?null:mechSword(m,K2);/* 무기: 없음이면 칼을 만들지 않는다(두 모드 같음) */K.hd=K2.hd;K.d=K2.d;K.blade=K2.blade;K.mech=true}
  // ─ 섬광 궤적(3D): 타격을 시작할 때 앞 키 자세→타격 자세를 미리 따라가며 칼날(코등이→칼끝) 위치를 구해 두고,
  // 그 칼날들이 쓸고 가는 3D 띠를 지금 칼까지만 드러낸다. 칼끝 바깥으로 손가락처럼 갈라진 빛꼬리, 지금 칼날 앞에 밝은 섬광 머리.
  // 흰빛·옅은 노랑이 번갈아 깜빡이고, 노란빛 차례엔 손 쪽을 중심으로 6% 커진다(울렁임). 먹 궤적은 2D와 같은 먹 호 그림(fxInk). 둘 다 평면 캔버스 텍스처로 그린다(fxRun).
- let FX=null,SWPID=1e9,FXPIDN=0;/* SWPID: 칼 부품 번호는 이 값보다 큼. FXPIDN: 인스턴스마다 더한 번호 간격(스키닝), 예전 방식은 0 */const bladeOf=K=>{const mc=K.m&&K.m.style==='mech',g=vadd(K.hd,vmul(K.d,mc?5:4)),t=vadd(K.hd,vmul(K.d,bladeLen(K.m)));return{g,t}};
+ let FX=null,SWPID=1e9,FXPIDN=0;/* SWPID: 칼 부품 번호는 이 값보다 큼. FXPIDN: 인스턴스마다 더한 번호 간격(스키닝), 예전 방식은 0 */const bladeOf=K=>{const mc=K.m&&K.m.style==='mech',H_=K.hdS||K.hd,g=vadd(H_,vmul(K.d,mc?5:4)),t=vadd(H_,vmul(K.d,bladeLen(K.m)));return{g,t}};
  function fxBuild(m,o){const SM=[];for(let q=0;q<=16;q++){const t=q/16,ps=mixK(P0(o.pk.pose),o.k.pose,t),dn=lerp(o.pk.down||0,o.k.down||0,t),K=m.style==='mech'?mechSkel(m,ps,dn):skel(m,ps,dn);K.m=m;SM.push({...bladeOf(K),h:K.hd})}const P=fxPlane(SM),R={idx:o.idx,SM,P};if(o.mode==='flash')R.S=fx2Build(SM.map(e=>({h:P.pr(e.g),a:P.pr(e.t)})),o);return R}
  /* ─ 섬광 검기(3D, 2D 섬광 검기와 같은 방식) ─ docs/캐릭터툴_기술.md "2D 섬광 검기" 참고.
     칼이 휘두르는 면을 평면(C, e1, e2)으로 잡고, 그 평면 좌표에서 2D와 같은 빌보드(바닥 = 끝 칼날, 양옆 경계, 손가락 꼬리, 빛줄기)를 만든다.
@@ -824,7 +838,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   return[ax*r[0],ay*u[0],z*b[0],0, ax*r[1],ay*u[1],z*b[1],0, ax*r[2],ay*u[2],z*b[2],0, bx,by,0,1]}
  function render(m,pose,down,X,Y,s,W,H,DPR,o={}){if(!init())return false;if(m.style!=='knight'&&m.style!=='mech')return false;AW=o.wArm??1;HWK=1;const mk=JSON.stringify(m,(k,v)=>k==='bink'||k==='btrace'?undefined:v)/* 경계선 붓 설정은 겉면과 무관 */+'|'+AW+'|'+dstep()+'|'+dshape()+'|'+dgap()+'|'+ddir()+'|'+dov();/* 머리 배율은 없앰(눈·코·입·투구 눈 틈은 기본 크기 고정) */if(!o.old&&skOK()&&SKBAD!==mk){if(renderSk(m,pose,down,X,Y,s,W,H,DPR,o,mk))return true;SKBAD=mk}lastStat={cpu:0,bone:0,n:1,old:true};// 스키닝을 못 쓰면(확장 미지원·뼈 수 불일치) 예전 방식
   const w=Math.round(W*DPR),h=Math.round(H*DPR);if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h}gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);
-  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);if(MODE==="mesh")SWPID=PID;if(m.wpn!=='none')sword(m,K)}
+  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);if(MODE==="mesh")SWPID=PID;swords(m,K)}
   gl.useProgram(prog);const cs=Math.cos(W3HOST.VIEW.yaw),sn=Math.sin(W3HOST.VIEW.yaw),U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('V'),false,view(X,Y,s,W,H));noSkin();gl.uniform3fv(U('L'),norm([sn*.9-cs*.7,cs*.9+sn*.7,1.1]));gl.uniform3fv(U('ink'),[.07,.065,.06]);gl.uniform3fv(U('B'),[sn*W3HOST.VIEW.uk,cs*W3HOST.VIEW.uk,W3HOST.VIEW.sq]);gl.uniform3fv(U('SR'),[cs,-sn,0]);gl.uniform3fv(U('SU'),[-sn*W3HOST.VIEW.sq,-cs*W3HOST.VIEW.sq,W3HOST.VIEW.uk]);gl.uniform1f(U('SM'),{toon:1,screen:2,matcap:3}[o.shade]||2);gl.uniform1f(U('BRU'),m.paint==='brush'?1:0);{const pp=m.pal||{},st=pp.steel||'#d9dee0';gl.uniform3fv(U('PST'),hex(st));gl.uniform3fv(U('PSH'),hex(pp.shade||hexMix(st,'#14161e',.4)));gl.uniform3fv(U('PHI'),hex(pp.hi||'#ffffff'))}
   const A=new Float32Array(V);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,A,gl.DYNAMIC_DRAW);const pL=gl.getAttribLocation(prog,'p'),nL=gl.getAttribLocation(prog,'n'),cL=gl.getAttribLocation(prog,'c');
   for(const[l,o] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,o)}const cnt=A.length/9;
@@ -840,7 +854,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.useProgram(prog);gl.enable(gl.DEPTH_TEST);gl.enableVertexAttribArray(hL);gl.bindBuffer(gl.ARRAY_BUFFER,vb);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}}
   gl.disableVertexAttribArray(iL);gl.vertexAttrib1f(iL,0);gl.disableVertexAttribArray(hL);gl.vertexAttrib4f(hL,0,0,0,0);
   // 섬광 궤적: 타격 키 동안만. 투명하게 섞고 깊이는 비교만(쓰지 않음) → 몸 뒤로 가면 가려진다
-  if(o.mode&&o.mode!=='none'&&m.wpn!=='none'&&(o.strike||fxKeep(o))){FXPIDN=0;fxRun(m,K,o,U,pL,nL,cL)}else FX=null;
+  if(o.mode&&o.mode!=='none'&&wpnOf(m).any&&(o.strike||fxKeep(o))){FXPIDN=0;fxRun(m,K,o,U,pL,nL,cL)}else FX=null;
   return true}
  // ─ 스키닝 렌더 ─
  let SKBAD='',XI=null,XF=false,VTU=0,skChecked=false,MESH=null,btex=null,insb=null,skb=null,BTD=null;
@@ -854,7 +868,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  const mul34=(P,Q,out,o)=>{for(let r=0;r<3;r++){const p0=P[r*4],p1=P[r*4+1],p2=P[r*4+2],p3=P[r*4+3];for(let c=0;c<4;c++)out[o+r*4+c]=p0*Q[c]+p1*Q[4+c]+p2*Q[8+c]+(c===3?p3:0)}};
  const TI=[1,0,0,0,0,1,0,0,0,0,1,0],FT=new Float64Array(12),F2=new Float64Array(12),fm2=(F,o)=>{const[p,a,b,c]=F;o[0]=a[0];o[1]=b[0];o[2]=c[0];o[3]=p[0];o[4]=a[1];o[5]=b[1];o[6]=c[1];o[7]=p[1];o[8]=a[2];o[9]=b[2];o[10]=c[2];o[11]=p[2]};
  const REST_POSE=()=>P0(POSE_STAND);
- function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);if(MODE==="mesh")SWPID=PID;if(m.wpn!=='none')sword(m,K);/* 무기: 없음이면 칼을 만들지 않는다(두 모드 같음) */pmk('칼');pfk('')}HLOC=null}
+ function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);if(MODE==="mesh")SWPID=PID;swords(m,K);/* 무기 설정대로 칼(없음·한손·양손 각각, 두 모드 같음) */pmk('칼');pfk('')}HLOC=null}
  // 겉면을 기본자세에서 한 번만 만든다(모델 설정이 바뀌면 다시)
  function ensureMesh(m,key){if(MESH&&MESH.key===key)return MESH;
   V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const rp=REST_POSE(),K=skel(m,rp,0);K.m=m;K.pose=rp;K.down=0;build(m,K);
@@ -901,7 +915,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,ftex);gl.uniform1i(gl.getUniformLocation(eprog,'T'),0);gl.uniform2f(gl.getUniformLocation(eprog,'px'),1/w,1/h);gl.uniform1f(gl.getUniformLocation(eprog,'wo'),(o.wOut??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'wb'),(o.wBnd??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'BRU'),m.paint==='brush'?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BTR'),m.btrace?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BKS'),clamp(m.bink??.8,0,1));{const ec=!!(o.strike&&o.mode==='flash'&&fxOpt('fxCover'));gl.uniform1f(gl.getUniformLocation(eprog,'SWE'),ec?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'ESW0'),SWPID);gl.uniform1f(gl.getUniformLocation(eprog,'EPN'),typeof ME!=='undefined'&&ME?ME.pidn:0)}/* 칼덮기 섬광 중엔 칼 둘레 먹선을 긋지 않는다(섬광 아래 검은 선) */gl.uniform3fv(gl.getUniformLocation(eprog,'ink'),[.07,.065,.06]);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.drawArrays(gl.TRIANGLES,0,3);gl.disable(gl.BLEND);gl.disableVertexAttribArray(qL);gl.useProgram(prog);gl.enable(gl.DEPTH_TEST)}
   // 5) 섬광 궤적(주인공만): 스키닝 없이 그대로
   noSkin();gl.vertexAttrib1f(iL,0);gl.vertexAttrib4f(hL,0,0,0,0);
-  if(o.mode&&o.mode!=='none'&&m.wpn!=='none'&&(o.strike||fxKeep(o))){FXPIDN=ME.pidn;fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
+  if(o.mode&&o.mode!=='none'&&wpnOf(m).any&&(o.strike||fxKeep(o))){FXPIDN=ME.pidn;fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
   lastStat={cpu:performance.now()-t0,bone:tbone,n:NI,verts:ME.cnt,nb:NB};return true}
  function show(on){const c=document.getElementById('gl3d2');if(c)c.hidden=!on;if(!on&&W3HOST.VIEW.sq<.2)W3HOST.VIEW.sq=.2;if(P3W!==on){P3W=on;patchPanel()}}/* 3D 월드2를 나가면 아래에서 보던 시점을 2D 범위로 되돌린다 */
 setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1안·2안·3안 제거, 조관 추가)는 2D에서도 처음부터 */
@@ -927,7 +941,7 @@ setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1�
    for(const id of big){const img=new ImageData(new Uint8ClampedArray(d),N,N),e=img.data;for(let py=0;py<N;py++){const gy=Math.min(GW-1,py/G|0);for(let px=0;px<N;px++){const gx=Math.min(GW-1,px/G|0);if(L[gy*GW+gx]!==id)e[(py*N+px)*4+3]=0}}cap(()=>c.putImageData(img,0,0),t||undefined)}}
   return true};/* 부위 조각 넘기기: 모델 전체를 그린 뒤 조각마다 보이는 부분만 3D로 다시 그리고, 화면에서 끊어진 덩어리(3px 칸 연결, 12칸 이상)마다 따로 cap(그리기, 이름)에 넘긴다(가려져 여러 조각으로 보이는 몸통·칼도 덩어리마다 테두리·붓질) */
  const pieces=()=>{if(!MESH||!MESH.pf)return[];let v=0;return MESH.pf.map(([t,c])=>{const r=[t,v,c*3];v+=c*3;return r}).filter(r=>r[2]>0)};/* 부위 조각: [이름, 시작 꼭짓점, 개수] */
- return{render,show,init,clampPose,
+ return{render,show,init,clampPose,handPts:(m,pose,down)=>{/* 무대 고리: 오른손·왼손·칼끝(3D). driveR/driveL = 그 손 고리로 조종하는가 */const K=skel(m,pose,down||0),W=K.WP;return{R:K.hd,L:K.off,tip:K.hdS?vadd(K.hdS,vmul(K.d,bladeLen(m))):null,driveR:!W.two||W.R,driveL:!W.two||W.L}},
   /* 회전모드(지역 요): 허벅지·상박을 자신의 길이 축(고관절→무릎, 어깨→팔꿈치) 둘레로 비튼다. 허벅지·상박과 무릎·팔꿈치는 제자리,
      굽은 무릎·팔꿈치 아래(정강이·발, 아래팔·손)가 그 축 둘레로 돌아 발·손 고리도 함께 움직이고, 무릎·팔꿈치 방향·발끝 방향·칼도 같은 회전을 받는다(발붙이기 모드의 발은 높이를 그대로 둔다) */
   limbFrame:(m,pose,down,md)=>{const K=skel(m,pose,down||0);let J,M,E,pl,d=null;if(md!=='hand'){const i=+md[4],g=K.legs[i],side=i?1:-1,f0=(pose.feet||KDEF.feet)[i];J=g.Hp;M=g.K;E=g.F;pl=f0.length>6?[f0[4],f0[5],f0[6]]:[100,side*45,0]}else{const A=K.arms[1],po=pose.off||KDEF.off,el=pose.elb??0;J=A.S;M=A.E;E=K.hd;pl=po.length>5?[po[3],po[4],po[5]]:[-35,(.7+el*.8)*100,-80];d=norm(pose.d)}
@@ -984,4 +998,4 @@ window.addEventListener('pointermove',e=>{let d=null;try{d=W3HOST.drag;if(!d||!d
  const f=ft[i],t=[f[0]+cs*dx/sc,f[1]-sn*dx/sc,(f[2]||0)-dy/(sc*V.uk)],H=R3D2.hipPt(m,k.pose,k.down||0,i),R=R3D2.legR(m),v=[t[0]-H[0],t[1]-H[1],t[2]-H[2]],l=Math.hypot(...v);if(l>R)for(let q=0;q<3;q++)t[q]=H[q]+v[q]*R/l;t[2]=Math.max(0,t[2]);ft[i]=[t[0],t[1],t[2],...f.slice(3)];/* 발끝·무릎 방향은 그대로 */k.pose.feet=ft}catch(_){}},{capture:true});
 /* 발 높이(feet[i][2])·발끝 각도(feet[i][3])도 키 사이에서 섞이게: 편집기 mixK는 발의 앞뒤·좌우만 섞으므로 덧붙인다 */
 {const _mk=W3HOST.mixK;W3HOST.mixK=function(a,b,k){const o=_mk(a,b,k);try{const fa=a.feet||[],fb=b.feet||[];const g=(f,j)=>f&&f[j]||0,L=(x,y)=>x+(y-x)*k;if(o.feet&&(fa.some(f=>f&&(f[2]||f[3]||f.length>6))||fb.some(f=>f&&(f[2]||f[3]||f.length>6))))o.feet=o.feet.map((f,i)=>{const r=[f[0],f[1],L(g(fa[i],2),g(fb[i],2)),L(g(fa[i],3),g(fb[i],3))];if((fa[i]&&fa[i].length>6)||(fb[i]&&fb[i].length>6)){const sd=i?1:-1,P=q=>q&&q.length>6?[q[4],q[5],q[6]]:[100,sd*45,0],pa=P(fa[i]),pb=P(fb[i]);r.push(L(pa[0],pb[0]),L(pa[1],pb[1]),L(pa[2],pb[2]))}return r});const oa=a.off,ob=b.off;if((oa&&oa.length>5)||(ob&&ob.length>5)){/* 칼 쥔 팔 팔꿈치 방향(off[3..5])도 섞는다 */const P=(q,p)=>q&&q.length>5?[q[3],q[4],q[5]]:[-35,(.7+(p.elb??0)*.8)*100,-80],pa=P(oa,a),pb=P(ob,b),o3=(o.off||[14,-9,72]).slice(0,3);o.off=[...o3,L(pa[0],pb[0]),L(pa[1],pb[1]),L(pa[2],pb[2])]}}catch(_){}return o}}
-{const _dm=W3HOST.drawModel;W3HOST.drawModel=function(c,m,o){let o0=null;try{if(W3HOST.WORLD==='3d2'&&o&&o.pose&&m&&m.style==='knight'){o0=o;o={...o,pose:R3D2.clampPose(m,o.pose,o.down||0)}}}catch(_){}const r=_dm.call(this,c,m,o);try{if(o0&&r&&r.feet){/* 발 고리: 3D 발 자리(들어 올린 발차기 발은 공중)에 둔다 */const V=W3HOST.VIEW,cs=Math.cos(o0.ang),sn=Math.sin(o0.ang),F=R3D2.footPts(m,o0.pose,o0.down||0);r.feet=F.map(v=>[o0.X+(v[0]*cs-v[1]*sn)*o0.s,o0.Y+(v[0]*sn+v[1]*cs)*V.sq*o0.s-v[2]*o0.s*V.uk])}}catch(_){}return r}}/* 3D 월드에서는 2D 그리기(그림 탭 안내값·손발 고리)에도 팔다리가 늘어나지 않은 자세를 넘긴다 */
+{const _dm=W3HOST.drawModel;W3HOST.drawModel=function(c,m,o){let o0=null;try{if(W3HOST.WORLD==='3d2'&&o&&o.pose&&m&&m.style==='knight'){o0=o;o={...o,pose:R3D2.clampPose(m,o.pose,o.down||0)}}}catch(_){}const r=_dm.call(this,c,m,o);try{if(o0&&r&&r.feet){/* 발 고리: 3D 발 자리(들어 올린 발차기 발은 공중)에 둔다 */const V=W3HOST.VIEW,cs=Math.cos(o0.ang),sn=Math.sin(o0.ang),F=R3D2.footPts(m,o0.pose,o0.down||0);const PJ=v=>[o0.X+(v[0]*cs-v[1]*sn)*o0.s,o0.Y+(v[0]*sn+v[1]*cs)*V.sq*o0.s-v[2]*o0.s*V.uk];r.feet=F.map(PJ);/* 손 고리: 무기 설정대로. 맨손·한손이면 왼손 고리도(따로 조종), 칼이 없으면 칼끝 고리를 숨김(화면 밖) */const HP=R3D2.handPts(m,o0.pose,o0.down||0),FAR=[-9999,-9999];r.h=HP.driveR?PJ(HP.R):FAR;if(HP.driveL)r.off=PJ(HP.L);else delete r.off;r.a=HP.tip?PJ(HP.tip):FAR}}catch(_){}return r}}/* 3D 월드에서는 2D 그리기(그림 탭 안내값·손발 고리)에도 팔다리가 늘어나지 않은 자세를 넘긴다 */
