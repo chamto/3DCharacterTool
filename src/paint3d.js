@@ -291,7 +291,10 @@ function paintModel(onProgress){
    const t=document.createElement('canvas');t.width=t.height=N;t.getContext('2d').putImageData(im,0,0);
    if(lk>1.25){const d=Math.min(2,(lk-1)*1.4);for(const[ox,oy] of[[d,0],[-d,0],[0,d],[0,-d]])c.drawImage(t,ox,oy)}c.drawImage(t,0,0)})}
  };
- if(W3HOST.paint.popt.medium==='oil2'){oil2Run(true)}else if(['oil','gogh','flat','ljs','oil3'].includes(W3HOST.paint.popt.medium)){
+ if(W3HOST.paint.popt.medium==='mbrush'){/* 붓터치 (수채): 모델 탭의 '붓터치 (수채)' 그림체로 3D 화면에 그려지는 모습을 그대로 한 장으로(같은 시점·자세·외곽선·경계선 굵기, 모델의 붓 설정) */
+ push(()=>{c.fillStyle='#ffffff';c.fillRect(0,0,N,N)});if(W3HOST.paint.popt.shadow)shadowJob();begin('붓터치 (수채)');
+ push(()=>{const bm=W3HOST.proj.model.style==='knight'?{...W3HOST.proj.model,paint:'brush'}:W3HOST.proj.model;sc_.clearRect(0,0,N,N);snap3(bm);c.drawImage(src,0,0)})
+ }else if(W3HOST.paint.popt.medium==='oil2'){oil2Run(true)}else if(['oil','gogh','flat','ljs','oil3'].includes(W3HOST.paint.popt.medium)){
  const fa0=(x,y)=>{const[ga,gm]=gAt(x,y);return gm>.18?ga+Math.PI/2:-1};
  // ── 유화: 어두운 바탕 위에 진하고 불투명한 붓을 겹겹이, 붓털 자국과 물감 두께를 남긴다
  const SAT=p=>{const l=p[0]*.3+p[1]*.59+p[2]*.11;return[0,1,2].map(i=>clamp((l+(p[i]-l)*1.35-128)*1.15+128,0,255)).concat(p[3])};

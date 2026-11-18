@@ -164,6 +164,8 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   {let ar='plate',tn=false;try{ar=W3HOST.proj.model.armor||'plate';tn=!!W3HOST.proj.model.tonlet}catch(_){}const ot=document.getElementById('w3ton');if(ot&&(!w3||ar==='jin'))ot.remove();
    if(w3&&ar!=='jin'&&!document.getElementById('w3ton')){const anc=[...pn.querySelectorAll('.sub')].find(e=>e.textContent.trim()==='겉옷 (서코트)');const at=anc&&anc.nextElementSibling;if(at){const g=document.createElement('div');g.id='w3ton';g.style.display='grid';g.style.gap='8px';g.innerHTML='<div class="sub">강철 치마 (톤렛)</div><div class="seg">'+[['1','입음'],['0','없음']].map(([v,l])=>'<button data-act="mbool" data-k="tonlet" data-v="'+v+'" aria-pressed="'+((v==='1')===tn)+'">'+l+'</button>').join('')+'</div>';at.after(g)}}}
   /* 신체 비율 '머리 크기'를 더 작게(0.3까지, 3D 월드) */{const mh=document.getElementById('mb_head');if(mh&&w3&&mh.min!=='0.3'){mh.min='0.3';try{mh.value=String((W3HOST.proj.model.body||{}).head??1)}catch(_){}}}
+  /* 그림 탭 재료: '붓터치 (수채)' 추가(모델 탭 붓터치 수채 그림체로 그려진 모습을 그대로 그림으로). 3D 월드에서만 */
+  {const mb=pn.querySelector('button[data-act="pt-opt"][data-k="medium"]');if(w3&&mb&&!pn.querySelector('button[data-act="pt-opt"][data-k="medium"][data-v="mbrush"]')){let md='';try{md=W3HOST.paint.popt.medium}catch(_){}const b=document.createElement('button');b.dataset.act='pt-opt';b.dataset.k='medium';b.dataset.v='mbrush';b.setAttribute('aria-pressed',String(md==='mbrush'));b.textContent='붓터치 (수채)';mb.parentNode.appendChild(b)}}
   const isModel=!!pn.querySelector('#mname');
   /* 모델 탭 맨 위: 3D 표시(3D 월드2에서만) */
   const old=document.getElementById('w3opt');if(old&&(!w3||!isModel))old.remove();
