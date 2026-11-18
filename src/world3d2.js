@@ -922,10 +922,10 @@ setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1�
   return true};/* 부위 조각 넘기기: 모델 전체를 그린 뒤 조각마다 보이는 부분만 3D로 다시 그리고, 화면에서 끊어진 덩어리(3px 칸 연결, 12칸 이상)마다 따로 cap(그리기, 이름)에 넘긴다(가려져 여러 조각으로 보이는 몸통·칼도 덩어리마다 테두리·붓질) */
  const pieces=()=>{if(!MESH||!MESH.pf)return[];let v=0;return MESH.pf.map(([t,c])=>{const r=[t,v,c*3];v+=c*3;return r}).filter(r=>r[2]>0)};/* 부위 조각: [이름, 시작 꼭짓점, 개수] */
  return{render,show,init,clampPose,
-  /* 회전모드(지역 요): 허벅지(고관절→무릎)·상박(어깨→팔꿈치) 자체를 그 뼈의 지역 위축(무릎·팔꿈치가 향한 방향에서 뼈 성분을 뺀 축) 둘레로 돌린다.
-     관절을 중심으로 다리·팔 전체가 통째로 돌아(무릎·팔꿈치 굽힘 유지) 발·손 고리도 함께 움직이고, 무릎·팔꿈치 방향·발끝 방향·칼도 같은 회전을 받는다. 발붙이기 모드의 발은 땅에 있어야 하므로 세로축 둘레 */
+  /* 회전모드(지역 요): 허벅지·상박을 자신의 길이 축(고관절→무릎, 어깨→팔꿈치) 둘레로 비튼다. 허벅지·상박과 무릎·팔꿈치는 제자리,
+     굽은 무릎·팔꿈치 아래(정강이·발, 아래팔·손)가 그 축 둘레로 돌아 발·손 고리도 함께 움직이고, 무릎·팔꿈치 방향·발끝 방향·칼도 같은 회전을 받는다(발붙이기 모드의 발은 높이를 그대로 둔다) */
   limbFrame:(m,pose,down,md)=>{const K=skel(m,pose,down||0);let J,M,E,pl,d=null;if(md!=='hand'){const i=+md[4],g=K.legs[i],side=i?1:-1,f0=(pose.feet||KDEF.feet)[i];J=g.Hp;M=g.K;E=g.F;pl=f0.length>6?[f0[4],f0[5],f0[6]]:[100,side*45,0]}else{const A=K.arms[1],po=pose.off||KDEF.off,el=pose.elb??0;J=A.S;M=A.E;E=K.hd;pl=po.length>5?[po[3],po[4],po[5]]:[-35,(.7+el*.8)*100,-80];d=norm(pose.d)}
-   const b=norm(vsub(M,J));let U=vsub(pl,vmul(b,vdot(pl,b)));if(vlen(U)<1e-3)U=vsub([0,0,1],vmul(b,b[2]));U=norm(U);if(md!=='hand'&&W3HOST.opt.footMode==='drop')U=[0,0,1];return{K,J,E,pl,d,U}},
+   const U=norm(vsub(M,J));/* 지역 요 = 허벅지·상박 자신의 길이 축(고관절→무릎, 어깨→팔꿈치) */return{K,J,E,pl,d,U}},
   limbRot:(F,ang)=>{const c=Math.cos(ang),s_=Math.sin(ang),a=F.U;return w=>vadd(vadd(vmul(w,c),vmul(vcross(a,w),s_)),vmul(a,vdot(a,w)*(1-c)))},
   limbPath:(m,pose,down,md,angs)=>{const F=R3D2.limbFrame(m,pose,down,md),v=vsub(F.E,F.J);return angs.map(a=>vadd(F.J,R3D2.limbRot(F,a)(v)))},
   limbYaw:(m,pose,down,md,ang)=>{const F=R3D2.limbFrame(m,pose,down,md),R=R3D2.limbRot(F,ang),pl=vmul(norm(R(F.pl)),100),t=vadd(F.J,R(vsub(F.E,F.J)));
