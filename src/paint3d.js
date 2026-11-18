@@ -168,7 +168,7 @@ function paintModel(onProgress){
  // 1단계 굵은 붓: 고른 모양으로 그린다
  const bigB=(x,y,a,l,w,col,a_,sh=W3HOST.paint.popt.bshape)=>drawBig(c,sh,x,y,a,l,w,col,a_,flatB);
  // 발밑 그림자 (선택): 엷은 청회색 평붓을 옆으로 눕혀 깐다
- const shadowJob=()=>push(()=>{const cy=Math.min(N-24,by1+4),cx=(bx0+bx1)/2,w=(bx1-bx0)*.85+50;for(let i=0;i<26;i++){const x=cx+rr(-w/2,w/2),y=cy+rr(-8,18);flatB(x,y,rr(-.08,.08),rr(40,110)*SZ,rr(6,14)*SZ,R()<.35?[168,176,198,1]:[205,211,226,1],rr(.5,.75))}});
+ const shadowJob=()=>push(()=>{/* 발밑 그림자: 모델 화면의 빗금 원(땅, 모델 원점)을 바닥으로 그 자리에. 칼이 다리보다 내려와도 칼끝이 아니라 땅에 */const cx=X,cy=Y,rx=29*s,ry=rx*clamp(W3HOST.VIEW.sq,.25,1)*.9;for(let i=0;i<26;i++){const a_=rr(0,6.2832),r_=Math.sqrt(R()),x=cx+Math.cos(a_)*rx*r_,y=cy+Math.sin(a_)*ry*r_;flatB(x,y,rr(-.08,.08),rr(40,110)*SZ,rr(6,14)*SZ,R()<.35?[168,176,198,1]:[205,211,226,1],rr(.5,.75))}});
  const oil2Run=FULL=>{// FULL=false면 유화3: 평붓 그림 위에 1·2단계만 얹는다
  const D=(!FULL&&D2)?D2:D_OUT,at=(x,y)=>{x=clamp(x|0,0,N-1);y=clamp(y|0,0,N-1);const i=(y*N+x)*4;return[D[i],D[i+1],D[i+2],D[i+3]/255]};
  // ── 유화2: 고른 부위만 이미지 붓으로 유화처럼 칠한다. 1) 부위 시작에서 끝까지 결 따라, 같은 색이 이어지는 동안만 한 붓 2) 결 따라 하이라이트

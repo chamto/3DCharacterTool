@@ -167,6 +167,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 그림 탭 재료: '붓터치 (수채)' 추가(모델 탭 붓터치 수채 그림체로 그려진 모습을 그대로 그림으로). 3D 월드에서만 */
   {const mb=pn.querySelector('button[data-act="pt-opt"][data-k="medium"]');if(w3&&mb&&!pn.querySelector('button[data-act="pt-opt"][data-k="medium"][data-v="mbrush"]')){let md='';try{md=W3HOST.paint.popt.medium}catch(_){}const b=document.createElement('button');b.dataset.act='pt-opt';b.dataset.k='medium';b.dataset.v='mbrush';b.setAttribute('aria-pressed',String(md==='mbrush'));b.textContent='붓터치 (수채)';mb.parentNode.appendChild(b)}}
   const isModel=!!pn.querySelector('#mname');
+  /* 모델 탭: 무기 칸(없음·칼). 판금 기사, 3D 월드에서만. m.wpn = 'none' | 'sword'(기본) */
+  {let st_='',wp='sword';try{st_=W3HOST.proj.model.style;wp=W3HOST.proj.model.wpn||'sword'}catch(_){}const ow=document.getElementById('w3wpn');if(ow&&(!w3||!isModel||st_!=='knight'))ow.remove();
+   if(w3&&isModel&&st_==='knight'&&!document.getElementById('w3wpn')){const g=document.createElement('section');g.className='grp';g.id='w3wpn';g.innerHTML='<h3>무기</h3><div class="seg">'+[['none','없음'],['sword','칼']].map(([v,l])=>'<button data-act="mset" data-k="wpn" data-v="'+v+'" aria-pressed="'+(wp===v)+'">'+l+'</button>').join('')+'</div>';const op=document.getElementById('w3opt');if(op)op.after(g);else pn.insertBefore(g,pn.firstChild)}}
   /* 모델 탭 맨 위: 3D 표시(3D 월드2에서만) */
   const old=document.getElementById('w3opt');if(old&&(!w3||!isModel))old.remove();
   if(w3&&isModel&&!document.getElementById('w3opt')){const g=document.createElement('section');g.className='grp';g.id='w3opt';g.innerHTML='<h3>3D 표시</h3><div class="sub">명암</div><div class="seg" id="w3sh"></div>';const sh=g.querySelector('#w3sh'),org=[...document.querySelectorAll('#shadesw button[data-shade]')];
@@ -821,7 +824,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   return[ax*r[0],ay*u[0],z*b[0],0, ax*r[1],ay*u[1],z*b[1],0, ax*r[2],ay*u[2],z*b[2],0, bx,by,0,1]}
  function render(m,pose,down,X,Y,s,W,H,DPR,o={}){if(!init())return false;if(m.style!=='knight'&&m.style!=='mech')return false;AW=o.wArm??1;HWK=1;const mk=JSON.stringify(m,(k,v)=>k==='bink'||k==='btrace'?undefined:v)/* 경계선 붓 설정은 겉면과 무관 */+'|'+AW+'|'+dstep()+'|'+dshape()+'|'+dgap()+'|'+ddir()+'|'+dov();/* 머리 배율은 없앰(눈·코·입·투구 눈 틈은 기본 크기 고정) */if(!o.old&&skOK()&&SKBAD!==mk){if(renderSk(m,pose,down,X,Y,s,W,H,DPR,o,mk))return true;SKBAD=mk}lastStat={cpu:0,bone:0,n:1,old:true};// 스키닝을 못 쓰면(확장 미지원·뼈 수 불일치) 예전 방식
   const w=Math.round(W*DPR),h=Math.round(H*DPR);if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h}gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);
-  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);if(MODE==="mesh")SWPID=PID;sword(m,K)}
+  V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const K=skel(m,pose,down);K.m=m;K.pose=pose;K.down=down;if(m.style==='mech')mechM(m,K);else{knight(m,K,pose);if(MODE==="mesh")SWPID=PID;if(m.wpn!=='none')sword(m,K)}
   gl.useProgram(prog);const cs=Math.cos(W3HOST.VIEW.yaw),sn=Math.sin(W3HOST.VIEW.yaw),U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('V'),false,view(X,Y,s,W,H));noSkin();gl.uniform3fv(U('L'),norm([sn*.9-cs*.7,cs*.9+sn*.7,1.1]));gl.uniform3fv(U('ink'),[.07,.065,.06]);gl.uniform3fv(U('B'),[sn*W3HOST.VIEW.uk,cs*W3HOST.VIEW.uk,W3HOST.VIEW.sq]);gl.uniform3fv(U('SR'),[cs,-sn,0]);gl.uniform3fv(U('SU'),[-sn*W3HOST.VIEW.sq,-cs*W3HOST.VIEW.sq,W3HOST.VIEW.uk]);gl.uniform1f(U('SM'),{toon:1,screen:2,matcap:3}[o.shade]||2);gl.uniform1f(U('BRU'),m.paint==='brush'?1:0);{const pp=m.pal||{},st=pp.steel||'#d9dee0';gl.uniform3fv(U('PST'),hex(st));gl.uniform3fv(U('PSH'),hex(pp.shade||hexMix(st,'#14161e',.4)));gl.uniform3fv(U('PHI'),hex(pp.hi||'#ffffff'))}
   const A=new Float32Array(V);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,A,gl.DYNAMIC_DRAW);const pL=gl.getAttribLocation(prog,'p'),nL=gl.getAttribLocation(prog,'n'),cL=gl.getAttribLocation(prog,'c');
   for(const[l,o] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,o)}const cnt=A.length/9;
@@ -837,7 +840,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.useProgram(prog);gl.enable(gl.DEPTH_TEST);gl.enableVertexAttribArray(hL);gl.bindBuffer(gl.ARRAY_BUFFER,vb);for(const[l,of] of[[pL,0],[nL,12],[cL,24]]){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,36,of)}}
   gl.disableVertexAttribArray(iL);gl.vertexAttrib1f(iL,0);gl.disableVertexAttribArray(hL);gl.vertexAttrib4f(hL,0,0,0,0);
   // 섬광 궤적: 타격 키 동안만. 투명하게 섞고 깊이는 비교만(쓰지 않음) → 몸 뒤로 가면 가려진다
-  if(o.mode&&o.mode!=='none'&&(o.strike||fxKeep(o))){FXPIDN=0;fxRun(m,K,o,U,pL,nL,cL)}else FX=null;
+  if(o.mode&&o.mode!=='none'&&m.wpn!=='none'&&(o.strike||fxKeep(o))){FXPIDN=0;fxRun(m,K,o,U,pL,nL,cL)}else FX=null;
   return true}
  // ─ 스키닝 렌더 ─
  let SKBAD='',XI=null,XF=false,VTU=0,skChecked=false,MESH=null,btex=null,insb=null,skb=null,BTD=null;
@@ -851,7 +854,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  const mul34=(P,Q,out,o)=>{for(let r=0;r<3;r++){const p0=P[r*4],p1=P[r*4+1],p2=P[r*4+2],p3=P[r*4+3];for(let c=0;c<4;c++)out[o+r*4+c]=p0*Q[c]+p1*Q[4+c]+p2*Q[8+c]+(c===3?p3:0)}};
  const TI=[1,0,0,0,0,1,0,0,0,0,1,0],FT=new Float64Array(12),F2=new Float64Array(12),fm2=(F,o)=>{const[p,a,b,c]=F;o[0]=a[0];o[1]=b[0];o[2]=c[0];o[3]=p[0];o[4]=a[1];o[5]=b[1];o[6]=c[1];o[7]=p[1];o[8]=a[2];o[9]=b[2];o[10]=c[2];o[11]=p[2]};
  const REST_POSE=()=>P0(POSE_STAND);
- function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);if(MODE==="mesh")SWPID=PID;sword(m,K);pmk('칼');pfk('')}HLOC=null}
+ function build(m,K){if(m.style==='mech'){mechM(m,K);pmk('로봇 전체')}else{knight(m,K,K.pose);if(MODE==="mesh")SWPID=PID;if(m.wpn!=='none')sword(m,K);/* 무기: 없음이면 칼을 만들지 않는다(두 모드 같음) */pmk('칼');pfk('')}HLOC=null}
  // 겉면을 기본자세에서 한 번만 만든다(모델 설정이 바뀌면 다시)
  function ensureMesh(m,key){if(MESH&&MESH.key===key)return MESH;
   V=[];IDS=[];HLA=[];SKA=[];DEC=[];PM=[];PMX={};PML=0;PF=[];PFL=0;MODE='mesh';BI=0;CB=0;REST=[];HLOC=null;PID=0;TAG=2;const rp=REST_POSE(),K=skel(m,rp,0);K.m=m;K.pose=rp;K.down=0;build(m,K);
@@ -898,7 +901,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,ftex);gl.uniform1i(gl.getUniformLocation(eprog,'T'),0);gl.uniform2f(gl.getUniformLocation(eprog,'px'),1/w,1/h);gl.uniform1f(gl.getUniformLocation(eprog,'wo'),(o.wOut??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'wb'),(o.wBnd??.8)*DPR);gl.uniform1f(gl.getUniformLocation(eprog,'BRU'),m.paint==='brush'?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BTR'),m.btrace?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'BKS'),clamp(m.bink??.8,0,1));{const ec=!!(o.strike&&o.mode==='flash'&&fxOpt('fxCover'));gl.uniform1f(gl.getUniformLocation(eprog,'SWE'),ec?1:0);gl.uniform1f(gl.getUniformLocation(eprog,'ESW0'),SWPID);gl.uniform1f(gl.getUniformLocation(eprog,'EPN'),typeof ME!=='undefined'&&ME?ME.pidn:0)}/* 칼덮기 섬광 중엔 칼 둘레 먹선을 긋지 않는다(섬광 아래 검은 선) */gl.uniform3fv(gl.getUniformLocation(eprog,'ink'),[.07,.065,.06]);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.drawArrays(gl.TRIANGLES,0,3);gl.disable(gl.BLEND);gl.disableVertexAttribArray(qL);gl.useProgram(prog);gl.enable(gl.DEPTH_TEST)}
   // 5) 섬광 궤적(주인공만): 스키닝 없이 그대로
   noSkin();gl.vertexAttrib1f(iL,0);gl.vertexAttrib4f(hL,0,0,0,0);
-  if(o.mode&&o.mode!=='none'&&(o.strike||fxKeep(o))){FXPIDN=ME.pidn;fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
+  if(o.mode&&o.mode!=='none'&&m.wpn!=='none'&&(o.strike||fxKeep(o))){FXPIDN=ME.pidn;fxRun(m,K0,o,U,pL,nL,cL);for(const l of[pL,nL,cL])gl.disableVertexAttribArray(l)}else FX=null;
   lastStat={cpu:performance.now()-t0,bone:tbone,n:NI,verts:ME.cnt,nb:NB};return true}
  function show(on){const c=document.getElementById('gl3d2');if(c)c.hidden=!on;if(!on&&W3HOST.VIEW.sq<.2)W3HOST.VIEW.sq=.2;if(P3W!==on){P3W=on;patchPanel()}}/* 3D 월드2를 나가면 아래에서 보던 시점을 2D 범위로 되돌린다 */
 setTimeout(()=>{try{mkUI()}catch(e){console.warn(e)}},0);/* 모델 탭 정리(1안·2안·3안 제거, 조관 추가)는 2D에서도 처음부터 */
