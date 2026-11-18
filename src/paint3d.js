@@ -292,8 +292,8 @@ function paintModel(onProgress){
    if(lk>1.25){const d=Math.min(2,(lk-1)*1.4);for(const[ox,oy] of[[d,0],[-d,0],[0,d],[0,-d]])c.drawImage(t,ox,oy)}c.drawImage(t,0,0)})}
  };
  if(W3HOST.paint.popt.medium==='mbrush'){/* 붓터치 (수채): 모델 탭의 '붓터치 (수채)' 그림체로 3D 화면에 그려지는 모습을 그대로 한 장으로(같은 시점·자세·외곽선·경계선 굵기, 모델의 붓 설정) */
- push(()=>{c.fillStyle='#ffffff';c.fillRect(0,0,N,N)});if(W3HOST.paint.popt.shadow)shadowJob();begin('붓터치 (수채)');
- push(()=>{const bm=W3HOST.proj.model.style==='knight'?{...W3HOST.proj.model,paint:'brush'}:W3HOST.proj.model;sc_.clearRect(0,0,N,N);snap3(bm);c.drawImage(src,0,0)})
+ push(()=>{c.fillStyle='#f2eee4';c.fillRect(0,0,N,N)});/* 바탕도 무대와 같은 종이색 */if(W3HOST.paint.popt.shadow)shadowJob();begin('붓터치 (수채)');
+ push(()=>{const bm=W3HOST.proj.model.style==='knight'?{...W3HOST.proj.model,paint:'brush'}:W3HOST.proj.model;/* 실시간 화면과 똑같게: 무대와 같은 배율(curS)·같은 화소 밀도(DPR)로 그린 뒤 그림판 크기로 늘린다(붓 결·선 굵기가 화면 화소 기준이라 배율이 다르면 그림체가 달라짐) */const sS=W3HOST.curS||s,dpr=Math.min(2,window.devicePixelRatio||1),f=s/sS,W_=Math.max(64,Math.round(N/f));R3D2.render(bm,W3HOST.PB.disp,W3HOST.PB.down,X/f,Y/f,sS,W_,W_,dpr,{shade:W3HOST.opt.shade3||'screen',wOut:W3HOST.opt.w3o??.8,wBnd:W3HOST.opt.w3b??.8,wArm:W3HOST.opt.w3a??1});c.drawImage(document.getElementById('gl3d2'),0,0,N,N);if(typeof W3HOST.wake==='function')W3HOST.wake(300)})
  }else if(W3HOST.paint.popt.medium==='oil2'){oil2Run(true)}else if(['oil','gogh','flat','ljs','oil3'].includes(W3HOST.paint.popt.medium)){
  const fa0=(x,y)=>{const[ga,gm]=gAt(x,y);return gm>.18?ga+Math.PI/2:-1};
  // ── 유화: 어두운 바탕 위에 진하고 불투명한 붓을 겹겹이, 붓털 자국과 물감 두께를 남긴다
