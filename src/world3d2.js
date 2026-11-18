@@ -2,8 +2,14 @@
 // 2D는 단면 점들의 겉 윤곽을 칠했지만, 여기서는 이웃 단면을 삼각형으로 이어(로프트) 진짜 겉면을 만든다. 투영은 2D와 같은 직교 투영.
 /* ═══ 2D·편집기 연동(호스트) ═══ 3D 월드는 아래 W3HOST로만 바깥(편집기·2D)에 닿는다. 3D를 따로 떼어 낼 때는 이 묶음만 바꿔 끼우면 된다.
    proj(모델·키 자료) commit(되돌리기 기록) opt·LS(화면 옵션 저장) VIEW(시점) WORLD·setWorld(월드 전환) wake(다시 그리기 요청) drag(무대 끌기 상태) drawModel(2D 그리기: 그림 탭 안내값·손발 고리) */
-const W3HOST={get proj(){return proj},commit:()=>commit(),get opt(){return opt},get LS(){return LS},get VIEW(){return VIEW},get WORLD(){return typeof WORLD!=='undefined'?WORLD:undefined},setWorld:w=>setWorld(w),wake:t=>wake(t),get drag(){return typeof drag!=='undefined'?drag:undefined},get drawModel(){return drawModel},set drawModel(f){drawModel=f},get PIECE_CAP(){return typeof PIECE_CAP!=='undefined'?PIECE_CAP:null},set PIECE_CAP(f){PIECE_CAP=f},get gl3d(){return document.getElementById('gl3d2')},get PB(){return PB},get curS(){return curS},get HANDLES(){return typeof HANDLES!=='undefined'?HANDLES:null},get mixK(){return mixK},set mixK(f){mixK=f},get paintModel(){return paintModel},set paintModel(f){paintModel=f},
+const W3HOST={get proj(){return proj},commit:()=>commit(),get opt(){return opt},get LS(){return LS},get VIEW(){return VIEW},get WORLD(){return typeof WORLD!=='undefined'?WORLD:undefined},setWorld:w=>setWorld(w),wake:t=>wake(t),get drag(){return typeof drag!=='undefined'?drag:undefined},get drawModel(){return drawModel},set drawModel(f){drawModel=f},get PIECE_CAP(){return typeof PIECE_CAP!=='undefined'?PIECE_CAP:null},set PIECE_CAP(f){PIECE_CAP=f},get gl3d(){return document.getElementById('gl3d2')},get PB(){return PB},get curS(){return curS},get ANIM_PRESETS(){return ANIM_PRESETS},mkKey:(n,p,o)=>mkKey(n,p,o),get HANDLES(){return typeof HANDLES!=='undefined'?HANDLES:null},get mixK(){return mixK},set mixK(f){mixK=f},get paintModel(){return paintModel},set paintModel(f){paintModel=f},
  /* 그림 탭과 공유하는 상태(painter.js): 재료 옵션·그림판·작업·단계 목록. 붓 자국 사진(BRUSH_IMG)도 같이 쓴다 */paint:{get popt(){return popt},get PCV(){return PCV},get paintJob(){return paintJob},set paintJob(v){paintJob=v},get painted(){return painted},set painted(v){painted=v},get paintStages(){return paintStages},set paintStages(v){paintStages=v},get stageSel(){return stageSel},set stageSel(v){stageSel=v},get brushImg(){return BRUSH_IMG}}};
+/* 3D 월드 동작 '장풍쏘기1': 맨손 두 손을 허리춤에 모았다가 앞으로 밀어 쏜다. 불러오면 양손 무기를 없음으로(장풍은 맨손). 2D 동작 탭에서는 버튼을 숨긴다(patchPanel) */
+let W3JP=-1;try{const AP=W3HOST.ANIM_PRESETS,mk=W3HOST.mkKey;W3JP=AP.length;AP.push(['장풍쏘기1',()=>{try{const m=W3HOST.proj.model;m.wpnR='none';m.wpnL='none'}catch(_){}return[
+ mk('자세',{h:[16,12,94],d:[1,0,.25],lean:0,feet:[[14,-14],[-12,14]],crouch:6,elb:.6,nod:0,off:[16,-12,94]},{hold:600,rate:9}),
+ mk('기 모으기',{h:[-2,15,80],d:[.2,0,1],lean:-5,feet:[[14,-14],[-12,14]],crouch:14,elb:1,nod:.1,off:[2,8,84]},{hold:520,rate:10}),
+ mk('장풍 쏘기',{h:[46,5,96],d:[1,0,.45],lean:16,feet:[[26,-12],[-14,14]],crouch:10,elb:0,nod:.15,off:[46,-5,96]},{hold:700,rate:30,lunge:.7}),
+ mk('자세',{h:[16,12,94],d:[1,0,.25],lean:0,feet:[[14,-14],[-12,14]],crouch:6,elb:.6,nod:0,off:[16,-12,94]},{hold:700,rate:8})]}])}catch(e){console.warn(e)}
 const R3D2=(()=>{
  /* ═══ 자체 계산 도구(2D 파일에서 옮겨 온 같은 식) ═══ 2D 쪽 같은 이름 함수에 기대지 않도록 3D 안에 따로 둔다 */
  const lerp=(a,b,k)=>a+(b-a)*k,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),norm=v=>{const m=Math.hypot(...v)||1;return v.map(x=>x/m)};
@@ -166,6 +172,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 신체 비율 '머리 크기'를 더 작게(0.3까지, 3D 월드) */{const mh=document.getElementById('mb_head');if(mh&&w3&&mh.min!=='0.3'){mh.min='0.3';try{mh.value=String((W3HOST.proj.model.body||{}).head??1)}catch(_){}}}
   /* 그림 탭 재료: '붓터치 (수채)' 추가(모델 탭 붓터치 수채 그림체로 그려진 모습을 그대로 그림으로). 3D 월드에서만 */
   {const mb=pn.querySelector('button[data-act="pt-opt"][data-k="medium"]');if(w3&&mb&&!pn.querySelector('button[data-act="pt-opt"][data-k="medium"][data-v="mbrush"]')){let md='';try{md=W3HOST.paint.popt.medium}catch(_){}const b=document.createElement('button');b.dataset.act='pt-opt';b.dataset.k='medium';b.dataset.v='mbrush';b.setAttribute('aria-pressed',String(md==='mbrush'));b.textContent='붓터치 (수채)';mb.parentNode.appendChild(b)}}
+  {/* 동작 탭: 3D 월드 전용 동작(장풍쏘기1) 버튼은 2D에서 숨긴다 */const jb=W3JP>=0?pn.querySelector('button[data-act="apre"][data-v="'+W3JP+'"]'):null;if(jb)jb.style.display=w3?'':'none'}
   const isModel=!!pn.querySelector('#mname');
 
   /* 모델 탭 맨 위: 3D 표시(3D 월드2에서만) */
