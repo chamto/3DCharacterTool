@@ -167,9 +167,9 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 그림 탭 재료: '붓터치 (수채)' 추가(모델 탭 붓터치 수채 그림체로 그려진 모습을 그대로 그림으로). 3D 월드에서만 */
   {const mb=pn.querySelector('button[data-act="pt-opt"][data-k="medium"]');if(w3&&mb&&!pn.querySelector('button[data-act="pt-opt"][data-k="medium"][data-v="mbrush"]')){let md='';try{md=W3HOST.paint.popt.medium}catch(_){}const b=document.createElement('button');b.dataset.act='pt-opt';b.dataset.k='medium';b.dataset.v='mbrush';b.setAttribute('aria-pressed',String(md==='mbrush'));b.textContent='붓터치 (수채)';mb.parentNode.appendChild(b)}}
   const isModel=!!pn.querySelector('#mname');
-  /* 모델 탭: 무기 칸(없음·칼). 판금 기사, 3D 월드에서만. m.wpn = 'none' | 'sword'(기본) */
-  {let st_='',wp='sword';try{st_=W3HOST.proj.model.style;wp=W3HOST.proj.model.wpn||'sword'}catch(_){}const ow=document.getElementById('w3wpn');if(ow&&(!w3||!isModel||st_!=='knight'))ow.remove();
-   if(w3&&isModel&&st_==='knight'&&!document.getElementById('w3wpn')){const g=document.createElement('section');g.className='grp';g.id='w3wpn';g.innerHTML='<h3>무기</h3><div class="seg">'+[['none','없음'],['sword','칼']].map(([v,l])=>'<button data-act="mset" data-k="wpn" data-v="'+v+'" aria-pressed="'+(wp===v)+'">'+l+'</button>').join('')+'</div>';const op=document.getElementById('w3opt');if(op)op.after(g);else pn.insertBefore(g,pn.firstChild)}}
+  /* 모델 탭: 무기 칸(없음·칼). 3D 월드의 모든 모델(판금 기사·로봇). m.wpn = 'none' | 'sword'(기본) */
+  {let st_='',wp='sword';try{st_=W3HOST.proj.model.style;wp=W3HOST.proj.model.wpn||'sword'}catch(_){}const okS=st_==='knight'||st_==='mech';/* 3D 월드에 나오는 모든 모델(판금 기사·로봇) */const ow=document.getElementById('w3wpn');if(ow&&(!w3||!isModel||!okS))ow.remove();
+   if(w3&&isModel&&okS&&!document.getElementById('w3wpn')){const g=document.createElement('section');g.className='grp';g.id='w3wpn';g.innerHTML='<h3>무기</h3><div class="seg">'+[['none','없음'],['sword','칼']].map(([v,l])=>'<button data-act="mset" data-k="wpn" data-v="'+v+'" aria-pressed="'+(wp===v)+'">'+l+'</button>').join('')+'</div>';const op=document.getElementById('w3opt');if(op)op.after(g);else pn.insertBefore(g,pn.firstChild)}}
   /* 모델 탭 맨 위: 3D 표시(3D 월드2에서만) */
   const old=document.getElementById('w3opt');if(old&&(!w3||!isModel))old.remove();
   if(w3&&isModel&&!document.getElementById('w3opt')){const g=document.createElement('section');g.className='grp';g.id='w3opt';g.innerHTML='<h3>3D 표시</h3><div class="sub">명암</div><div class="seg" id="w3sh"></div>';const sh=g.querySelector('#w3sh'),org=[...document.querySelectorAll('#shadesw button[data-shade]')];
@@ -725,7 +725,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
  function mechSword(m,K){if(!K.sword)return null;const p=m.pal||{},d=K.d,hd=K.hd,mech=K.mech,pom=vsub(hd,vmul(d,mech?17:14)),guard=vadd(hd,vmul(d,mech?5:4)),tip=vadd(hd,vmul(d,K.blade));let gv=vcross(d,[0,0,1]);if(vlen(gv)<.2)gv=[0,1,0];gv=norm(gv);
   seg(pom,guard,1.6,1.6,p.leather||p.dark||'#5a3e2a');ball(pom,2.6,2.6,2.6,p.trim||'#c9a24a');boxAB(vsub(guard,vmul(gv,0)),vadd(guard,vmul(d,2.4)),mech?10:8,1.6,p.trim||'#7d878d',gv);boxAB(guard,tip,mech?3.2:2.4,.6,p.blade||'#dfe3e4',gv);return{guard,tip}}
 
- function mechM(m,K){const K2=mechSkel(m,K.pose,K.down);K2.m=m;mechBody(m,K2);if(MODE==="mesh")SWPID=PID;const sw=mechSword(m,K2);K.hd=K2.hd;K.d=K2.d;K.blade=K2.blade;K.mech=true}
+ function mechM(m,K){const K2=mechSkel(m,K.pose,K.down);K2.m=m;mechBody(m,K2);if(MODE==="mesh")SWPID=PID;const sw=m.wpn==='none'?null:mechSword(m,K2);/* 무기: 없음이면 칼을 만들지 않는다(두 모드 같음) */K.hd=K2.hd;K.d=K2.d;K.blade=K2.blade;K.mech=true}
  // ─ 섬광 궤적(3D): 타격을 시작할 때 앞 키 자세→타격 자세를 미리 따라가며 칼날(코등이→칼끝) 위치를 구해 두고,
  // 그 칼날들이 쓸고 가는 3D 띠를 지금 칼까지만 드러낸다. 칼끝 바깥으로 손가락처럼 갈라진 빛꼬리, 지금 칼날 앞에 밝은 섬광 머리.
  // 흰빛·옅은 노랑이 번갈아 깜빡이고, 노란빛 차례엔 손 쪽을 중심으로 6% 커진다(울렁임). 먹 궤적은 2D와 같은 먹 호 그림(fxInk). 둘 다 평면 캔버스 텍스처로 그린다(fxRun).
