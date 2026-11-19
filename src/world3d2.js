@@ -734,22 +734,28 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   const head=mech?vadd(T(uS+11*bN+2),[nod*4,0,-nod*2]):vadd(T(uS+18*bN),[nod*5,0,-nod*3]);
   const nA=nod*.6,hyw=pose.hyaw??0,cP=Math.cos(nA),sP=Math.sin(nA),cY=Math.cos(hyw),sY=Math.sin(hyw),HR=v=>{const[f,r,u]=v,f2=f*cP+u*sP,u2=u*cP-f*sP;return[f2*cY-r*sY,f2*sY+r*cY,u2]};
   return{mech,bT,LM,hs,bS,legs,arms,hd,d,sword,H0,uS,T,bend,head,HR,blade:bladeLen(m)}}
+ /* 매끈 곡면(sloft): 단면 줄 [중심, 앞 반폭 벡터, 옆 반폭 벡터, 모서리 지수 e(2 = 원, 클수록 각진 둥근 사각)]을 이어 겉면 하나로. 꼭짓점 법선이 이어져 명암이 부드럽다.
+    o.rb/o.rt: 처음/끝을 둥글게 오므려 닫음, o.cb/o.ct: 납작하게 닫음. 뼈는 두 모드 모두 한 개 등록 */
+ const sloft=(rows,col,o={})=>{const c0=rows[0][0],c1=rows[rows.length-1][0],b=bone([vlerp(c0,c1,.5),rows[0][1],rows[0][2],vsub(c1,c0)]);if(MODE==='bone')return;const cb0=CB;CB=b;
+  const N=o.n||20,ring=(c,F,Rv,e,k=1)=>{const a=[],q=2/e;for(let i=0;i<N;i++){const t=i/N*6.2832,cs=Math.cos(t),sn=Math.sin(t);a.push(vadd(c,vadd(vmul(F,Math.sign(cs)*Math.pow(Math.abs(cs),q)*k),vmul(Rv,Math.sign(sn)*Math.pow(Math.abs(sn),q)*k))))}return a};
+  const R=rows.map(r=>ring(r[0],r[1],r[2],r[3])),ax=norm(vsub(c1,c0)),end=(r,dir)=>{const d=Math.min(vlen(r[1]),vlen(r[2]))*(o.rd??.5);return[ring(vadd(r[0],vmul(dir,d*.55)),r[1],r[2],r[3],.8),ring(vadd(r[0],vmul(dir,d*.9)),r[1],r[2],r[3],.42)]};
+  if(o.rb){const[a,a2]=end(rows[0],vmul(ax,-1));R.unshift(a);R.unshift(a2)}if(o.rt){const[a,a2]=end(rows[rows.length-1],ax);R.push(a,a2)}
+  loft(R,col,{capB:!!(o.rb||o.cb),capT:!!(o.rt||o.ct)});CB=cb0};
  /* 기사형 2 (망토 검사): 둥근 큰 어깨 갑옷(오른쪽 빨간 보석·왼쪽 초록 보석), 금색 면갑·십자 볏, 가는 허리, 아래로 벌어진 정강이, 금색 V 가슴 장식, 큰 망토. 두 모드에서 같은 순서로 부른다 */
  function mechAura(m,K){const p=m.pal||{},body=p.body||'#8f8ca3',acc=p.accent||'#5d6b84',dk=p.dark||'#3a4252',jt=p.joint||'#4e5a6e',tr=p.trim||'#d4a72c',gem=p.gem||'#d81e22',glw=p.glow||'#3fd17a',{bT,LM,T,H0,uS}=K,B=K.bend,pd=m.body?.pad??1;
   for(const g of K.legs){const sv=[-g.toe[1],g.toe[0],0],sd=g.side;seg(g.Hp,g.K,6.2*LM,5*LM,body);ball(g.K,5*LM,5*LM,5*LM,jt);ball(vadd(g.K,[4*LM,0,1.5]),3*LM,4.4*LM,6*LM,body);
-   seg(vadd(g.K,[0,0,-2]),vadd(g.A,[0,0,1]),5*LM,7.2*LM,body);boxAB(vadd(g.K,[-1,sd*4.6*LM,-6]),vadd(g.A,[-1.5,sd*7.8*LM,1.5]),4.6*LM,1,body,[1,0,0]);ball(g.A,5.4*LM,5.4*LM,2.8,acc);
-   const heel=vadd(g.F,vmul(g.toe,-7)),tip=vadd(g.F,vmul(g.toe,15));boxAB(vadd(heel,[0,0,3]),vadd(tip,[0,0,2]),7*LM,3.2,acc,sv)}
-  box(T(H0-1),7.5*bT,9*bT,5.5,body);boxAB([B(H0+3)+7*bT,0,H0+3],[B(H0-8)+5*bT,0,H0-8],3.2*bT,1.6,body,[0,1,0]);for(const sd of[-1,1])ball([B(H0+1),sd*9.6*bT,H0+1],4,2.2,4.6,jt);
-  seg(T(H0+2),T(uS-14),6*bT,7*bT,jt);boxAB([B(H0+4)+5.6*bT,0,H0+4],[B(uS-13)+7.4*bT,0,uS-13],3.6*bT,1.4,body,[0,1,0]);
-  ball(T(uS-7),10.5*bT,15*bT,12,body);box(T(uS+2),6*bT,8*bT,2.5,body);
+   {/* 정강이: 무릎에서 발목으로 벌어지는 둥근 사각 곡면(앞이 불룩) */const K0=vadd(g.K,[0,0,-2]),A0=vadd(g.A,[0,0,1]),ax=norm(vsub(A0,K0)),fv=norm(vsub(g.toe,vmul(ax,vdot(g.toe,ax)))),rv=norm(vcross(ax,fv)),SH=[[0,4.8,4.4,.3],[.3,5.2,4.8,.6],[.65,6,5.8,.7],[.88,6.8,7,.5],[1,6.6,7.4,.2]];sloft(SH.map(([t,a_,b_,o_])=>[vadd(vlerp(K0,A0,t),vmul(fv,o_*LM)),vmul(fv,a_*LM),vmul(rv,b_*LM),2.7]),body,{cb:true,ct:true})}ball(g.A,5.4*LM,5.4*LM,2.8,acc);
+   {/* 발: 뒤꿈치→발끝으로 낮아지는 둥근 상자 곡면 */const up=[0,0,1],FT=[[-7,3.2,6.2,3],[2,3.4,7,3.2],[11,2.4,6.4,2.4],[15,1.4,5,1.6]];sloft(FT.map(([x,h,w,z])=>[vadd(vadd(g.F,vmul(g.toe,x)),[0,0,z]),vmul(up,h),vmul(sv,w*LM),3]),acc,{rb:true,rt:true,rd:.4})}}
+  {/* 몸통: 골반 → 잘록한 허리 → 가슴 → 목둘레를 단면 줄 하나로. 골반·배·가슴은 이웃 단면을 함께 쓰고 부품 번호만 달라 이음선(경계선)이 생긴다 */const TR=[[H0-8,3.6,4.6,2,2.4],[H0-3,6.6,8.6,.6,2.8],[H0+2,6.8,9.6,0,3],[H0+6,5.6,7.6,.4,2.7],[H0+11,5,6.4,.8,2.5],[uS-22,6.2,8.4,1.2,2.6],[uS-16,8.6,12.6,1.2,2.8],[uS-10,10.4,15,1,3],[uS-4,10,15,.2,3.2],[uS+.5,7.4,11.6,-.4,3],[uS+3,4.6,7.2,-.6,2.6]],row=([z,a_,b_,o_,e])=>[[B(z)+o_*bT,0,z],[a_*bT,0,0],[0,b_*bT,0],e];
+   sloft(TR.slice(0,4).map(row),body,{rb:true,rd:.35});sloft(TR.slice(3,7).map(row),jt);sloft(TR.slice(6).map(row),body,{ct:true})}for(const sd of[-1,1])ball([B(H0+1),sd*9.8*bT,H0+1],4,2.2,4.6,jt);
   {const z0=uS-12,x0=B(z0)+10.9*bT;for(const sd of[-1,1])boxAB([x0,0,z0],[B(uS-6)+9.6*bT,sd*6.4*bT,uS-5],1.1,.6,tr,[0,0,1]);ball([x0+.3,0,z0+.6],1.1,1.6,1.8,tr);for(const sd of[-1,1])ball([B(uS-1)+8.6*bT,sd*7.4*bT,uS-1],1.2,1.9,1.9,jt)}
   for(const g of K.arms){const sd=g.side,fw=norm(vsub(g.Hn,g.E)),wr=vsub(g.Hn,vmul(fw,4)),sp=vadd(g.S,[0,sd*2.5,3]);ball(g.S,5*LM,5*LM,5*LM,jt);seg(g.S,g.E,4.4*LM,4*LM,body);
-   ball(sp,8*pd,7.5*pd,7.5*pd,body);boxAB(vadd(g.S,[-1,sd*(2+6*pd),0]),vadd(g.S,[1,sd*(2.5+8*pd),-10*pd]),6.5*pd,1,body,[1,0,0]);
-   {const gp=vadd(sp,[1.5,sd*7.3*pd,1]);if(sd<0)ball(vadd(gp,[0,sd*-.3,0]),3.2,.9,4.2,p.gemRim||'#b9a2b8');ball(gp,2.4,1.2,3.4,sd>0?gem:glw)}
-   ball(g.E,4.6*LM,4.6*LM,4.6*LM,jt);seg(g.E,wr,4.6*LM,5.8*LM,body);box(g.Hn,4.4*LM,4.6*LM,4.6*LM,dk,{f:fw,r:norm(vcross([0,0,1],fw)),u:norm(vcross(fw,norm(vcross([0,0,1],fw))))})}
+   {/* 어깨 갑옷: 둥근 꼭대기에서 아래로 바깥쪽으로 벌어지는 종 모양 곡면 */const PL=[[7.6,2.4,2.2,0],[6.2,5.6,5.2,.2],[3,8,7.4,.6],[-2,8.6,8.2,1.2],[-7,8.8,8.8,2.4],[-9.5,8.2,8.6,3]];sloft(PL.map(([z,a_,b_,y_])=>[vadd(sp,[0,sd*y_*pd,z*pd]),[a_*pd,0,0],[0,b_*pd,0],2.3]),body,{rb:true,ct:true,rd:.3})}
+   {const gp=vadd(sp,[1.5,sd*8.4*pd,1]);if(sd<0)ball(vadd(gp,[0,sd*-.3,0]),3.2,.9,4.2,p.gemRim||'#b9a2b8');ball(gp,2.4,1.2,3.4,sd>0?gem:glw)}
+   ball(g.E,4.6*LM,4.6*LM,4.6*LM,jt);{/* 하박: 손목 쪽으로 벌어지는 둥근 사각 곡면 */let pf=vcross(fw,[0,0,1]);if(vlen(pf)<.2)pf=vcross(fw,[1,0,0]);pf=norm(pf);const pu=norm(vcross(pf,fw)),E0=vadd(g.E,vmul(fw,1.5));sloft([[0,4.4],[.5,4.8],[.92,5.9],[1,5.6]].map(([t,r_])=>[vlerp(E0,wr,t),vmul(pu,r_*LM),vmul(pf,r_*.92*LM),2.6]),body,{rb:true,ct:true,rd:.3})}box(g.Hn,4.4*LM,4.6*LM,4.6*LM,dk,{f:fw,r:norm(vcross([0,0,1],fw)),u:norm(vcross(fw,norm(vcross([0,0,1],fw))))})}
   const hd_=K.head,HR=K.HR,hs=K.hs,f=HR([1,0,0]),r=HR([0,1,0]),u=HR([0,0,1]),hdm=m.hdim||{},H=(a,b,c)=>vadd(hd_,vadd(vadd(vmul(f,a*hs),vmul(r,b*hs)),vmul(u,c*hs))),FR={f,r,u};
   seg(T(uS+2),H(0,0,-6),3,2.6,jt);ball(hd_,6*hs*(hdm.d??1),5.6*hs*(hdm.w??1),6.6*hs*(hdm.h??1),p.head||body,FR);
-  box(H(4.2,0,-1.2),2.4*hs,3.9*hs,3.6*hs,tr,FR);boxAB(H(5.3,0,-3.6),H(4.4,0,-7),1.6*hs,1.1*hs,tr,r);for(const z of[.8,-.9])box(H(6.45,0,z),.3,2.8*hs,.3*hs,dk,FR);
+  {/* 금색 면갑: 이마에서 뾰족한 턱까지 둥근 곡면 */const MK=[[2.6,1.6,3.6,4],[0,2.3,4,4.3],[-2.5,2.2,3.7,4.4],[-4.6,1.8,2.6,4.6],[-6.8,1.1,1.1,4.8]];sloft(MK.map(([z,a_,b_,o_])=>[H(o_,0,z),vmul(f,a_*hs),vmul(r,b_*hs),2.6]),tr,{rb:true,rt:true,rd:.4})}for(const z of[.8,-.9])box(H(6.45,0,z),.3,2.8*hs,.3*hs,dk,FR);
   ball(H(5.4,0,3.6),.8*hs,.7*hs,1.2*hs,gem,FR);boxAB(H(2,0,4.5),H(1.8,0,9),1.4*hs,.6,tr,f);boxAB(H(1.8,0,9),H(1.5,0,20),.7*hs,.45,tr,f);
   for(const sd of[-1,1])boxAB(H(2.2,0,7.5),H(1.6,sd*9.5,10),.8*hs,.4,tr,u);
   if(m.capeOn){const SL=K.arms[0].S,SR=K.arms[1].S,hemU=Math.max(3,H0*.06),q=[vadd(SL,[-11,-1,4]),vadd(SR,[-11,1,4]),[B(hemU)-26,34*bT,hemU],[B(hemU)-26,-34*bT,hemU]],R=[];CB=bone(torsoF(K));const BCh=bone([[B(hemU)-26,0,hemU],[1,0,0],[0,1,0],[0,0,1]]);
