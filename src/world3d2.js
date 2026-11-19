@@ -11,6 +11,27 @@ let W3JP=-1;try{const AP=W3HOST.ANIM_PRESETS,mk=W3HOST.mkKey;W3JP=AP.length;AP.p
  mk('기 모으기',{h:[-2,15,80],d:[.2,0,1],lean:-5,feet:[[14,-14],[-12,14]],crouch:14,elb:1,nod:.1,off:[2,8,84]},{hold:520,rate:10}),
  mk('장풍 쏘기',{h:[46,5,96],d:[1,0,.45],lean:16,feet:[[26,-12],[-14,14]],crouch:10,elb:0,nod:.15,off:[46,-5,96]},{hold:700,rate:30,lunge:.7}),
  mk('자세',{h:[16,12,94],d:[1,0,.25],lean:0,feet:[[14,-14],[-12,14]],crouch:6,elb:.6,nod:0,off:[16,-12,94]},{hold:700,rate:8})]}])}catch(e){console.warn(e)}
+/* 3D 월드 동작: 영상(두 기사 결투)에서 뽑은 공격 7가지 + 이어하기. 무겁고 느린 느낌: 느린 준비(rate 5~7, 길게) → 정점에서 멈칫(rate 2~3) → 타격은 빠르지 않게(rate 15~20)·몸을 깊이 낮추고 밀고 나감 → 지나침 여운(rate 5) → 느린 회복(rate 4). 2D 월드에서는 버튼을 숨긴다(W3KA0~W3KA1) */
+let W3KA0=-1,W3KA1=-1;try{const AP=W3HOST.ANIM_PRESETS,mk=W3HOST.mkKey,F=(a,b)=>[[a,-13],[b,14]],
+ Q={low:{h:[4,10,52],d:[-.55,.15,-.6],lean:6,feet:F(14,-12),crouch:12,elb:.2,nod:.25},step:{h:[10,10,54],d:[-.5,.15,-.65],lean:10,feet:F(26,-6),crouch:14,elb:.2,nod:.3},
+  mid:{h:[24,4,78],d:[.85,0,.5],lean:4,feet:F(16,-14),crouch:10,elb:.2,nod:.1},
+  pull:{h:[-2,6,84],d:[.98,0,.1],lean:-6,feet:F(14,-14),crouch:12,elb:.7,nod:.1},thrust:{h:[56,0,84],d:[1,0,.04],lean:22,feet:F(32,-18),crouch:16,elb:0,nod:.15},thrustO:{h:[60,0,81],d:[1,0,-.03],lean:25,feet:F(32,-18),crouch:19,elb:0,nod:.2},
+  beatP:{h:[18,6,58],d:[.85,.1,-.2],lean:2,feet:F(16,-14),crouch:14,elb:.4,nod:.2},beat:{h:[36,0,114],d:[.5,0,.86],lean:6,feet:F(22,-14),crouch:8,elb:.1,nod:-.05},beatO:{h:[32,-2,122],d:[.3,-.05,.95],lean:3,feet:F(22,-14),crouch:9,elb:.15,nod:-.1},
+  over:{h:[-12,4,140],d:[-.75,0,.6],lean:-12,feet:F(16,-14),crouch:8,elb:.6,nod:-.1},overT:{h:[-14,4,142],d:[-.8,0,.55],lean:-13,feet:F(16,-14),crouch:8,elb:.6,nod:-.12},down:{h:[44,0,56],d:[.85,0,-.52],lean:24,feet:[[30,-15],[-14,17]],crouch:20,elb:0,nod:.35},downO:{h:[40,0,46],d:[.68,0,-.73],lean:26,feet:[[30,-15],[-14,17]],crouch:23,elb:0,nod:.4},
+  hip:{h:[-10,14,70],d:[-.9,.2,-.15],lean:-4,feet:F(16,-12),crouch:15,elb:.8,nod:.15},rise:{h:[40,-6,118],d:[.55,-.3,.78],lean:14,feet:F(28,-12),crouch:6,elb:.05,nod:-.1},riseO:{h:[24,-14,132],d:[-.2,-.5,.85],lean:8,feet:F(28,-12),crouch:7,elb:.2,nod:-.15},
+  bindP:{h:[14,6,104],d:[.5,.05,.86],lean:-2,feet:F(16,-14),crouch:10,elb:.4,nod:0},bind:{h:[30,2,122],d:[.6,0,.8],lean:10,feet:F(24,-14),crouch:12,elb:.2,nod:0},bindO:{h:[34,2,118],d:[.66,0,.75],lean:13,feet:F(24,-14),crouch:14,elb:.15,nod:.05},
+  diagP:{h:[-4,16,128],d:[-.4,.35,.85],lean:-8,feet:F(16,-14),crouch:9,elb:.5,nod:-.05},diag:{h:[38,-10,60],d:[.75,-.45,-.48],lean:20,feet:F(28,-14),crouch:18,elb:0,nod:.3},diagO:{h:[32,-16,52],d:[.55,-.6,-.58],lean:22,feet:F(28,-14),crouch:20,elb:0,nod:.35}},
+ K=(n,p,o)=>mk(n,Q[p],o),ready=()=>K('자세','mid',{hold:800,rate:6}),rec=()=>K('자세','mid',{hold:1000,rate:4}),
+ L={
+  '중기사 하단 전진':()=>[K('하단 겨눔','low',{hold:900,rate:5}),K('내딛기','step',{hold:900,rate:3,lunge:.5}),K('하단 겨눔','low',{hold:700,rate:4}),K('내딛기','step',{hold:900,rate:3,lunge:.5}),K('하단 겨눔','low',{hold:900,rate:4})],
+  '중기사 찌르기':()=>[ready(),K('당김','pull',{hold:750,rate:6}),K('당김(멈칫)','pull',{hold:220,rate:2}),K('찌름','thrust',{hold:380,rate:17,lunge:1.3}),K('여운','thrustO',{hold:550,rate:5}),rec()],
+  '중기사 쳐올리기':()=>[ready(),K('낮춤','beatP',{hold:650,rate:6}),K('쳐올림','beat',{hold:420,rate:16,lunge:.6}),K('여운','beatO',{hold:550,rate:5}),rec()],
+  '중기사 크게 내려베기':()=>[ready(),K('치켜듦','over',{hold:900,rate:5}),K('젖힘(멈칫)','overT',{hold:300,rate:2}),K('타격','down',{hold:420,rate:15,lunge:1.4}),K('여운','downO',{hold:650,rate:5}),rec()],
+  '중기사 허리 당겨 올려베기':()=>[ready(),K('허리 당김','hip',{hold:850,rate:6}),K('허리 당김(멈칫)','hip',{hold:250,rate:2}),K('올려베기','rise',{hold:420,rate:16,lunge:1.1}),K('여운','riseO',{hold:650,rate:5}),rec()],
+  '중기사 상단 맞댐':()=>[ready(),K('들어 올림','bindP',{hold:700,rate:6}),K('맞댐','bind',{hold:500,rate:14,lunge:.7}),K('밀어붙임','bindO',{hold:900,rate:3}),K('맞댐','bind',{hold:600,rate:4}),rec()],
+  '중기사 사선 내려베기':()=>[ready(),K('어깨 위로','diagP',{hold:850,rate:5}),K('어깨 위로(멈칫)','diagP',{hold:220,rate:2}),K('베기','diag',{hold:420,rate:16,lunge:1.2}),K('여운','diagO',{hold:600,rate:5}),rec()]};
+ L['중기사 이어하기(영상 순서)']=()=>{const g=n=>L[n]();return[...g('중기사 하단 전진').slice(0,3),...g('중기사 찌르기').slice(1,5),...g('중기사 쳐올리기').slice(1,4),...g('중기사 허리 당겨 올려베기').slice(1,5),...g('중기사 상단 맞댐').slice(1,4),...g('중기사 사선 내려베기').slice(1,5),...g('중기사 크게 내려베기').slice(1)]};
+ W3KA0=AP.length;for(const n in L)AP.push([n,L[n]]);W3KA1=AP.length}catch(e){console.warn(e)}
 const R3D2=(()=>{
  /* ═══ 자체 계산 도구(2D 파일에서 옮겨 온 같은 식) ═══ 2D 쪽 같은 이름 함수에 기대지 않도록 3D 안에 따로 둔다 */
  const lerp=(a,b,k)=>a+(b-a)*k,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),norm=v=>{const m=Math.hypot(...v)||1;return v.map(x=>x/m)};
@@ -176,7 +197,7 @@ let gl=null,cvs=null,prog=null,vb=null,ok=false;
   /* 신체 비율 '머리 크기'를 더 작게(0.3까지, 3D 월드) */{const mh=document.getElementById('mb_head');if(mh&&w3&&mh.min!=='0.3'){mh.min='0.3';try{mh.value=String((W3HOST.proj.model.body||{}).head??1)}catch(_){}}}
   /* 그림 탭 재료: '붓터치 (수채)' 추가(모델 탭 붓터치 수채 그림체로 그려진 모습을 그대로 그림으로). 3D 월드에서만 */
   {const mb=pn.querySelector('button[data-act="pt-opt"][data-k="medium"]');if(w3&&mb&&!pn.querySelector('button[data-act="pt-opt"][data-k="medium"][data-v="mbrush"]')){let md='';try{md=W3HOST.paint.popt.medium}catch(_){}const b=document.createElement('button');b.dataset.act='pt-opt';b.dataset.k='medium';b.dataset.v='mbrush';b.setAttribute('aria-pressed',String(md==='mbrush'));b.textContent='붓터치 (수채)';mb.parentNode.appendChild(b)}}
-  {/* 동작 탭: 3D 월드 전용 동작(장풍쏘기1) 버튼은 2D에서 숨긴다 */const jb=W3JP>=0?pn.querySelector('button[data-act="apre"][data-v="'+W3JP+'"]'):null;if(jb)jb.style.display=w3?'':'none'}
+  {/* 동작 탭: 3D 월드 전용 동작(장풍쏘기1) 버튼은 2D에서 숨긴다 */const jb=W3JP>=0?pn.querySelector('button[data-act="apre"][data-v="'+W3JP+'"]'):null;if(jb)jb.style.display=w3?'':'none';/* 영상에서 뽑은 중기사 공격들도 */for(let i=W3KA0;i>=0&&i<W3KA1;i++){const kb=pn.querySelector('button[data-act="apre"][data-v="'+i+'"]');if(kb)kb.style.display=w3?'':'none'}}
   const isModel=!!pn.querySelector('#mname');
 
   /* 모델 탭 맨 위: 3D 표시(3D 월드2에서만) */
